@@ -42,9 +42,6 @@ public class PlayerVisualHandler : MonoBehaviour
     [Header("States")]
     private bool diceSpinning;
 
-    [Header("Dynamic Animation")]
-    [SerializeField] private Rig headRig;
-
     [Header("Particles")]
     [SerializeField] private ParticleSystem coinGainParticle;
     [SerializeField] private ParticleSystem coinLossParticle;
@@ -61,11 +58,11 @@ public class PlayerVisualHandler : MonoBehaviour
         splineKnotAnimator = GetComponentInParent<SplineKnotAnimate>();
         numberLabels = GetComponentsInChildren<TextMeshPro>();
 
-        //playerDice.gameObject.SetActive(false);
-
+        // SplineKnotInstantiate를 찾아서 splineKnotData에 할당
         if (FindAnyObjectByType<SplineKnotInstantiate>() != null)
             splineKnotData = FindAnyObjectByType<SplineKnotInstantiate>();
-        particleRepeatInterval = coinGainParticle.emission.GetBurst(0).repeatInterval;
+        
+        particleRepeatInterval = coinGainParticle.emission.GetBurst(0).repeatInterval; // 파티클의 반복 간격을 가져옴
 
         playerController.OnRollStart.AddListener(OnRollStart);
         playerController.OnRollJump.AddListener(OnRollJump);
@@ -76,13 +73,13 @@ public class PlayerVisualHandler : MonoBehaviour
         splineKnotAnimator.OnEnterJunction.AddListener(OnEnterJunction);
         splineKnotAnimator.OnJunctionSelection.AddListener(OnJunctionSelection);
         splineKnotAnimator.OnKnotLand.AddListener(OnKnotLand);
+
+        //playerDice.gameObject.SetActive(false);
     }
 
     private void OnRollStart()
     {
         transform.DOLookAt(Camera.main.transform.position, .35f, AxisConstraint.Y);
-
-        DOVirtual.Float(0, 1, .4f, SetHeadWeight);
 
         diceSpinning = true;
 
@@ -94,11 +91,9 @@ public class PlayerVisualHandler : MonoBehaviour
 
     private void OnRollCancel()
     {
-        OnRollStart();
-        // DOVirtual.Float(1, 0, .4f, SetHeadWeight);
-        // diceSpinning = false;
-        // playerDice.DOComplete();
-        // playerDice.DOScale(0, .12f).OnComplete(() => { playerDice.gameObject.SetActive(false); playerDice.transform.localScale = Vector3.one; });
+        diceSpinning = false;
+        playerDice.DOComplete();
+        playerDice.DOScale(0, .12f).OnComplete(() => { playerDice.gameObject.SetActive(false); playerDice.transform.localScale = Vector3.one; });
 
     }
 
@@ -135,7 +130,6 @@ public class PlayerVisualHandler : MonoBehaviour
     {
         if (movement)
         {
-            DOVirtual.Float(1, 0, .2f, SetHeadWeight);
             transform.DOLocalRotate(Vector3.zero, .3f);
         }
         else
@@ -143,11 +137,6 @@ public class PlayerVisualHandler : MonoBehaviour
             transform.DOLookAt(Camera.main.transform.position, .35f, AxisConstraint.Y);
         }
 
-    }
-
-    void SetHeadWeight(float headWeight)
-    {
-        headRig.weight = headWeight;
     }
 
     private void OnKnotLand(SplineKnotIndex index)
@@ -277,7 +266,8 @@ public class PlayerVisualHandler : MonoBehaviour
         if (diceSpinning == false)
             yield break;
 
-        int num = Random.Range(1, 11);
+        // Random.Range는 정수형일 경우 min값은 포함하고 max값은 포함하지 않음
+        int num = Random.Range(1, 7); // 1~6까지의 랜덤 숫자 생성
         SetDiceNumber(num);
         yield return new WaitForSeconds(numberAnimationSpeed);
         StartCoroutine(RandomDiceNumberCoroutine());
