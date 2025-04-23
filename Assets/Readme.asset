@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcf7219bab7fe46a1ad266029b2fee19, type: 3}
+  m_Name: Readme
+  m_EditorClassIdentifier: 
+  icon: {fileID: 2800000, guid: 3c7cab540b386440bb94668973016fb7, type: 3}
+  title: Mario Party's Board Gameplay| Mix and Jam
+  sections:
+  - heading: Controls
+    text: The entire project can be controller with the arrow keys and the space
+      bar for actions.
+    linkText: 
+    url: 
+  - heading: Terrain
+    text: The terrain doesn't get stamped as you move the spline, the heighmap and
+      splatmap have to be rebaked with a context menu function on the SplineTerrain
+      script
+    linkText: 
+    url: 
+  - heading: Video
+    text: Final video explaining the creation steps
+    linkText: Watch it on Youtube!
+    url: https://youtu.be/UAmJPGVMUW4
+  loadedLayout: 1
