@@ -1,152 +1,54 @@
-using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using UnityEngine.Splines;
 
-[RequireComponent(typeof(SplineKnotAnimate))]
-public class PlayerController : MonoBehaviour
+
+public class PlayerController : BaseController
 {
-    private PlayerStats stats;
-    private SplineKnotAnimate splineKnotAnimator;
-    private SplineKnotInstantiate splineKnotData;
-    [SerializeField] private int roll = 0;
-
-    [Header("Parameters")]
-    [SerializeField] private float jumpDelay = .5f;
-    [SerializeField]
-    private float resultDelay = .5f;
-    [SerializeField] private float startMoveDelay = .5f;
-
-    [Header("Events")]
-    [HideInInspector] public UnityEvent OnRollStart;
-    [HideInInspector] public UnityEvent OnRollJump;
-    [HideInInspector] public UnityEvent<int> OnRollDisplay;
-    [HideInInspector] public UnityEvent OnRollEnd;
-    [HideInInspector] public UnityEvent OnRollCancel;
-    [HideInInspector] public UnityEvent<bool> OnMovementStart;
-    [HideInInspector] public UnityEvent<int> OnMovementUpdate;
-
-    [Header("States")]
-    public bool isRolling;
-    public bool allowInput = true;
-
-    void Start()
+    protected override void Start()
     {
-        stats = GetComponent<PlayerStats>();
-        splineKnotAnimator = GetComponent<SplineKnotAnimate>();
-
-        splineKnotAnimator.OnDestinationKnot.AddListener(OnDestinationKnot);
-        splineKnotAnimator.OnKnotEnter.AddListener(OnKnotEnter);
-        splineKnotAnimator.OnKnotLand.AddListener(OnKnotLand);
-
-        if (FindAnyObjectByType<SplineKnotInstantiate>() != null)
-            splineKnotData = FindAnyObjectByType<SplineKnotInstantiate>();
-
+        base.Start();
         PrepareToRoll();
     }
-
-    private void OnDestinationKnot(SplineKnotIndex index)
-    {
-        SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
-        if (data.skipStepCount)
-            splineKnotAnimator.SkipStepCount = true;
-    }
-
-    private void OnKnotLand(SplineKnotIndex index)
-    {
-        SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
-
-        StartCoroutine(DelayCoroutine());
-        IEnumerator DelayCoroutine()
-        {
-            yield return new WaitForSeconds(.08f);
-            data.Land(stats);
-            OnMovementStart.Invoke(false);
-            yield return new WaitForSeconds(2);
-            if (FindAnyObjectByType<TurnUI>() != null)
-            {
-                FindAnyObjectByType<TurnUI>().StartPlayerTurn(this);
-            }
-        }
-    }
-
-    private void OnKnotEnter(SplineKnotIndex index)
-    {
-        SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
-        //Debug.Log($"Entered: S{data.knotIndex.Spline}K{data.knotIndex.Knot}");
-        data.EnterKnot(splineKnotAnimator);
-        OnMovementUpdate.Invoke(splineKnotAnimator.Step);
-    }
-
-    public void PrepareToRoll()
-    {
-        isRolling = true;
-
-        OnRollStart.Invoke();
-    }
-
-    IEnumerator RollSequence()
-    {
-        allowInput = false;
-        OnRollJump.Invoke();
-
-        roll = Random.Range(1, 11);
-
-        yield return new WaitForSeconds(jumpDelay);
-
-        OnRollDisplay.Invoke(roll);
-
-        yield return new WaitForSeconds(resultDelay);
-
-        isRolling = false;
-        OnRollEnd.Invoke();
-
-        yield return new WaitForSeconds(startMoveDelay);
-
-        splineKnotAnimator.Animate(roll);
-
-        OnMovementStart.Invoke(true);
-        OnMovementUpdate.Invoke(roll);
-        allowInput = true;
-    }
-
-    public void AllowInput(bool allow)
-    {
-        allowInput = allow;
-    }
-
+    
+    // New Input System 입력 처리 메서드
+    
+    // 점프 버튼 (주사위 굴림 또는 분기점 선택 확정)
     void OnJump()
     {
         if (!allowInput)
             return;
-
 
         if (splineKnotAnimator.isMoving)
             return;
 
         if (splineKnotAnimator.inJunction)
         {
-            splineKnotAnimator.inJunction = false;
+            // 분기점 선택 확정
+            ConfirmJunctionSelection();
         }
         else
         {
             if (isRolling)
             {
-                StartCoroutine(RollSequence());
+                // 주사위 굴림 시작
+                StartRoll();
             }
         }
     }
 
+    // 이동 입력 (분기점에서 경로 선택)
     void OnMove(InputValue value)
     {
         if (!allowInput)
             return;
 
-        if (value.Get<Vector2>().y != 0)
-            splineKnotAnimator.AddToJunctionIndex(-(int)value.Get<Vector2>().y);
+        // 좌/우 입력에 따라 분기점 인덱스 조정
+        // -1: 왼쪽, 1: 오른쪽
+        if (value.Get<Vector2>().x != 0)
+            SelectJunctionPath(-(int)value.Get<Vector2>().x);
     }
 
+    // 취소 버튼 (주사위 굴림 취소)
     void OnCancel()
     {
         if (!allowInput)
@@ -155,13 +57,7 @@ public class PlayerController : MonoBehaviour
         if (!isRolling)
             return;
 
-        isRolling = false;
-
-        if (FindAnyObjectByType<TurnUI>() != null)
-        {
-            FindAnyObjectByType<TurnUI>().StartPlayerTurn(this);
-        }
-
-        OnRollCancel.Invoke();
+        // 주사위 굴림 취소
+        CancelRoll();
     }
 }

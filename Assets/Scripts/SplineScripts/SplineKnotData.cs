@@ -32,9 +32,9 @@ public class SplineKnotData : MonoBehaviour
 
     }
 
-    public void Land(PlayerStats playerStats)
+    public void Land(BaseStats Stats)
     {
-        playerStats.AddCoins(coinGain);
+        Stats.AddCoins(coinGain);
         OnLand.Invoke(coinGain);
 
     }
