@@ -13,7 +13,7 @@ using System;
 // TurnUI 클래스 개선
 public class TurnUI : MonoBehaviour
 {
-    [SerializeField] private PlayerController currentPlayer;
+    [SerializeField] private BaseController currentPlayer;
     [SerializeField] private CanvasGroup actionsCanvasGroup;
     [SerializeField] private CanvasGroup rollCanvasGroup;
     [SerializeField] private CanvasGroup starPurchasCanvasGroup;

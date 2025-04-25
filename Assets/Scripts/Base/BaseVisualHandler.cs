@@ -59,7 +59,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
         // GameManager를 통해 SplineKnotData 참조 획득
         if (GameManager.Instance != null && GameManager.Instance.SplineKnotData != null)
             splineKnotData = GameManager.Instance.SplineKnotData;
-        
+
         if (coinGainParticle != null)
             particleRepeatInterval = coinGainParticle.emission.GetBurst(0).repeatInterval; // 파티클의 반복 간격을 가져옴
 
@@ -122,7 +122,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
             if (diceHitParticle.GetComponent<CinemachineImpulseSource>() != null)
                 diceHitParticle.GetComponent<CinemachineImpulseSource>().GenerateImpulse();
         }
-        
+
         characterDice.DOComplete();
         diceSpinning = false;
         SetDiceNumber(roll);
@@ -154,7 +154,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
     protected virtual void OnKnotLand(SplineKnotIndex index)
     {
         if (splineKnotData == null) return;
-        
+
         SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
 
         if (coinGainParticle != null && coinLossParticle != null && baseStats != null)
@@ -219,7 +219,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
         junctionList = new List<GameObject>();
         junctionVisual.DOComplete();
         junctionVisual.DOScale(0, .2f).From().SetEase(Ease.OutBack);
-        
+
         for (int i = 0; i < splineKnotAnimator.walkableKnots.Count; i++)
         {
             GameObject junctionObject = Instantiate(junctionArrowPrefab.gameObject, junctionVisual);
@@ -231,7 +231,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
     protected virtual void OnJunctionSelection(int junctionIndex)
     {
         if (junctionList == null || junctionIndex >= junctionList.Count) return;
-        
+
         for (int i = 0; i < junctionList.Count; i++)
         {
             if (i != junctionIndex)
@@ -267,7 +267,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
     protected virtual void SpinDice()
     {
         if (characterDice == null) return;
-        
+
         characterDice.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
 
         tiltTime += Time.deltaTime * tiltFrequency;
@@ -291,32 +291,38 @@ public abstract class BaseVisualHandler : MonoBehaviour
     public virtual void SetDiceNumber(int value)
     {
         if (numberLabels == null) return;
-        
+
         foreach (TextMeshPro p in numberLabels)
         {
             p.text = value.ToString();
         }
     }
     
+    // 주사위 회전 메서드
+    public Transform GetDiceTransform()
+    {
+        return characterDice;
+    }
+
     // 공통 애니메이션 메서드
     public virtual void PlayJumpAnimation()
     {
         if (animator != null)
             animator.SetTrigger("Jump");
     }
-    
+
     public virtual void SetMovingAnimation(bool isMoving)
     {
         if (animator != null)
             animator.SetBool("Move", isMoving);
     }
-    
+
     public virtual void PlayCelebrateAnimation()
     {
         if (animator != null)
             animator.SetTrigger("Happy");
     }
-    
+
     public virtual void PlaySadAnimation()
     {
         if (animator != null)
