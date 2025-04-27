@@ -9,7 +9,7 @@ public abstract class BaseController : MonoBehaviour
     protected BaseStats stats;
     protected SplineKnotAnimate splineKnotAnimator;
     protected SplineKnotInstantiate splineKnotData;
-    [SerializeField] protected int roll = 0;
+    protected int roll = 0; // 주사위 결과
 
     [Header("Parameters")]
     [SerializeField] protected float jumpDelay = .5f;
@@ -106,7 +106,7 @@ public abstract class BaseController : MonoBehaviour
             yield return new WaitForSeconds(.08f);
             data.Land(stats);
             OnMovementStart.Invoke(false);
-            yield return new WaitForSeconds(2);
+            yield return new WaitForSeconds(1.5f);
 
             // GameManager를 통한 턴 종료 처리
             GameManager.Instance.EndCurrentTurn();
@@ -122,35 +122,38 @@ public abstract class BaseController : MonoBehaviour
         OnMovementUpdate.Invoke(splineKnotAnimator.Step);
     }
 
+    // 주사위 굴림 준비 메서드 (공통)
     public virtual void PrepareToRoll()
     {
         isRolling = true;
         OnRollStart.Invoke();
     }
 
+    // 주사위 굴림 시퀀스 코루틴 (공통)
+    // 주사위 점프, 결과 표시, 이동 시작을 포함한 시퀀스
     protected virtual IEnumerator RollSequence()
     {
-        allowInput = false;
-        OnRollJump.Invoke();
+        allowInput = false; // 입력을 비활성화합니다.
+        OnRollJump.Invoke(); // 주사위 점프 이벤트를 호출합니다.
 
-        roll = Random.Range(1, 11);
+        roll = Random.Range(8, 10); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
 
-        yield return new WaitForSeconds(jumpDelay);
+        yield return new WaitForSeconds(jumpDelay); // 점프 딜레이 시간만큼 대기합니다.
 
-        OnRollDisplay.Invoke(roll);
+        OnRollDisplay.Invoke(roll); // 주사위 결과를 표시하는 이벤트를 호출합니다.
 
-        yield return new WaitForSeconds(resultDelay);
+        //yield return new WaitForSeconds(resultDelay); // 결과 딜레이 시간만큼 대기합니다.
 
-        isRolling = false;
-        OnRollEnd.Invoke();
+        isRolling = false; // 주사위 굴림 상태를 비활성화합니다.
+        OnRollEnd.Invoke(); // 주사위 굴림 종료 이벤트를 호출합니다.
 
-        yield return new WaitForSeconds(startMoveDelay);
+        yield return new WaitForSeconds(startMoveDelay); // 이동 시작 딜레이 시간만큼 대기합니다.
 
-        splineKnotAnimator.Animate(roll);
+        splineKnotAnimator.Animate(roll); // 주사위 결과에 따라 애니메이션을 실행합니다.
 
-        OnMovementStart.Invoke(true);
-        OnMovementUpdate.Invoke(roll);
-        allowInput = true;
+        OnMovementStart.Invoke(true); // 이동 시작 이벤트를 호출합니다.
+        OnMovementUpdate.Invoke(roll); // 이동 업데이트 이벤트를 호출하며 주사위 결과를 전달합니다.
+        allowInput = true; // 입력을 다시 활성화합니다.
     }
 
     public virtual void AllowInput(bool allow)

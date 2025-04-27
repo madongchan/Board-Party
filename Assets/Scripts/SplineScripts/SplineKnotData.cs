@@ -36,7 +36,6 @@ public class SplineKnotData : MonoBehaviour
     {
         Stats.AddCoins(coinGain);
         OnLand.Invoke(coinGain);
-
     }
 
 }

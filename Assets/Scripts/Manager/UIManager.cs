@@ -26,8 +26,8 @@ public class UIManager : MonoBehaviour
     [Header("Star Purchase UI")]
     [SerializeField] private GameObject starPurchaseUIPanel;
     [SerializeField] private CanvasGroup starPurchaseCanvasGroup;
-    [SerializeField] private Button starConfirmButton;
-    [SerializeField] private Button starCancelButton;
+    [SerializeField] public Button starConfirmButton;
+    [SerializeField] public Button starCancelButton;
     [SerializeField] private TextMeshProUGUI starPriceText;
 
     [Header("Stats UI")]
@@ -38,7 +38,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Image starIcon;
 
     [Header("Player UI")]
-    [SerializeField] private GameObject turnUIPanel;
+    [SerializeField] private GameObject playerUIPanel;
     [SerializeField] private TextMeshProUGUI currentPlayerNameText;
     [SerializeField] private Image currentPlayerIcon;
     [SerializeField] private Sprite[] playerIcons;
@@ -46,7 +46,9 @@ public class UIManager : MonoBehaviour
     [Header("Junction UI")]
     [SerializeField] private GameObject junctionUIPanel;
     [SerializeField] private TextMeshProUGUI junctionInstructionText;
-    [SerializeField] private Image[] junctionPathImages;
+    [Header("NPC State UI")]
+    //[SerializeField] private GameObject NPCstateUIPanel;
+    [SerializeField] private TextMeshProUGUI NPCstateText;
 
     [Header("Animation Parameters")]
     [SerializeField] private float uiFadeDuration = 0.3f;
@@ -139,7 +141,6 @@ public class UIManager : MonoBehaviour
         if (currentSplineKnotAnimator != null)
         {
             currentSplineKnotAnimator.OnEnterJunction.AddListener(OnEnterJunction);
-            currentSplineKnotAnimator.OnJunctionSelection.AddListener(OnJunctionSelection);
         }
 
         if (currentPlayerStats != null)
@@ -167,7 +168,6 @@ public class UIManager : MonoBehaviour
         if (currentSplineKnotAnimator != null)
         {
             currentSplineKnotAnimator.OnEnterJunction.RemoveListener(OnEnterJunction);
-            currentSplineKnotAnimator.OnJunctionSelection.RemoveListener(OnJunctionSelection);
         }
 
         if (currentPlayerStats != null)
@@ -222,6 +222,14 @@ public class UIManager : MonoBehaviour
         // 스케일 애니메이션
         rollValueText.transform.localScale = Vector3.zero;
         rollValueText.transform.DOScale(rollTextOriginalScale, 0.2f).SetEase(rollTextScaleEase);
+    }
+
+    /// <summary>
+    /// 주사위 결과 텍스트 페이드 아웃
+    /// </summary>
+    public void FadeRollText(bool fadeText)
+    {
+        rollCanvasGroup.DOFade(fadeText ? 0 : 1, .3f);
     }
 
     /// <summary>
@@ -405,7 +413,7 @@ public class UIManager : MonoBehaviour
         {
             if (currentController is PlayerController)
             {
-                currentPlayerNameText.text = "플레이어";
+                currentPlayerNameText.text = "Player";
             }
             else if (currentController is NPCController)
             {
@@ -440,59 +448,17 @@ public class UIManager : MonoBehaviour
             // 플레이어/NPC에 따라 다른 안내 텍스트 표시
             if (currentController is PlayerController)
             {
-                junctionInstructionText.text = "방향키로 경로를 선택하고 스페이스바를 눌러 확정하세요";
+                junctionInstructionText.text = "Select the direction key and press the space to confirm";
             }
             else
             {
-                junctionInstructionText.text = "NPC가 경로를 선택 중...";
+                junctionInstructionText.text = "NPC is selecting a path...";
             }
-
-            // 초기 선택 표시
-            UpdateJunctionUI(0);
         }
         else
         {
             // 분기점 UI 비활성화
             junctionUIPanel.SetActive(false);
-        }
-    }
-
-    /// <summary>
-    /// 분기점 선택 이벤트 핸들러
-    /// </summary>
-    public void OnJunctionSelection(int selectionIndex)
-    {
-        if (!isInJunction) return;
-
-        UpdateJunctionUI(selectionIndex);
-    }
-
-    /// <summary>
-    /// 분기점 UI 업데이트
-    /// </summary>
-    public void UpdateJunctionUI(int selectionIndex)
-    {
-        if (currentSplineKnotAnimator == null ||
-            currentSplineKnotAnimator.walkableKnots == null ||
-            currentSplineKnotAnimator.walkableKnots.Count == 0) return;
-
-        int pathCount = currentSplineKnotAnimator.walkableKnots.Count;
-
-        // 경로 이미지 업데이트
-        for (int i = 0; i < junctionPathImages.Length; i++)
-        {
-            if (i < pathCount)
-            {
-                junctionPathImages[i].gameObject.SetActive(true);
-
-                // 선택된 경로 하이라이트
-                Color color = (i == selectionIndex) ? Color.yellow : Color.white;
-                junctionPathImages[i].color = color;
-            }
-            else
-            {
-                junctionPathImages[i].gameObject.SetActive(false);
-            }
         }
     }
 
@@ -536,5 +502,12 @@ public class UIManager : MonoBehaviour
         // 이 메서드는 중요한 결정을 내릴 때 사용
     }
 
+    public void ShowNPCState(string state)
+    {
+        if (NPCstateText != null)
+        {
+            NPCstateText.text = state;
+        }
+    }
     #endregion
 }

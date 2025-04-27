@@ -27,8 +27,7 @@ public class NPCController : BaseController
         states.Add(typeof(TurnEndState), new TurnEndState(this));
         states.Add(typeof(StarPurchaseDecisionState), new StarPurchaseDecisionState(this));
 
-        // 초기 상태 설정
-        ChangeState<IdleState>();
+        ChangeState<IdleState>(); // 초기 상태 설정
     }
 
     // 상태 변경 메서드
@@ -55,6 +54,10 @@ public class NPCController : BaseController
     public override void StartRoll()
     {
         PrepareToRoll();
+    }
+
+    public void ConfirmRoll()
+    {
         StartCoroutine(RollSequence());
     }
 
@@ -82,6 +85,35 @@ public class NPCController : BaseController
         ConfirmJunctionSelection();
     }
 
+    protected override IEnumerator RollSequence()
+    {
+        OnRollJump.Invoke(); // 주사위 점프 이벤트를 호출합니다.
+
+        roll = Random.Range(6, 10); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
+
+        yield return new WaitForSeconds(jumpDelay); // 점프 딜레이 시간만큼 대기합니다.
+
+        OnRollDisplay.Invoke(roll); // 주사위 결과를 표시하는 이벤트를 호출합니다.
+
+        yield return new WaitForSeconds(resultDelay); // 결과 딜레이 시간만큼 대기합니다.
+
+        isRolling = false; // 주사위 굴림 상태를 비활성화합니다.
+        OnRollEnd.Invoke(); // 주사위 굴림 종료 이벤트를 호출합니다.
+    }
+    // NPC 이동 처리
+    public void Move()
+    {
+        StartCoroutine(MoveCoroutine());
+    }
+    private IEnumerator MoveCoroutine()
+    {
+        // 이동 로직 구현
+        splineKnotAnimator.Animate(roll); // 주사위 결과에 따라 애니메이션을 실행합니다.
+
+        OnMovementStart.Invoke(true); // 이동 시작 이벤트를 호출합니다.
+        OnMovementUpdate.Invoke(roll); // 이동 업데이트 이벤트를 호출하며 주사위 결과를 전달합니다.
+        yield return null;
+    }
     // 분기점 경로 선택 로직 개선
     public int DecideJunctionPath(List<SplineKnotIndex> options)
     {

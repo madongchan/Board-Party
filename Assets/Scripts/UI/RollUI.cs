@@ -57,7 +57,7 @@ public class RollUI : MonoBehaviour
         if (visualHandler != null)
         {
             // BaseVisualHandler에 주사위 Transform을 가져오는 메서드 추가 필요
-            currentDice = visualHandler.GetDiceTransform();
+            //currentDice = visualHandler.GetDiceTransform();
         }
         
         // 새 이벤트 리스너 등록

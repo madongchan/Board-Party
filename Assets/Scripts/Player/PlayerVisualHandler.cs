@@ -1,7 +1,6 @@
 public class PlayerVisualHandler : BaseVisualHandler
 {
     private PlayerController playerController;
-    private PlayerStats playerStats;
 
     protected override void Start()
     {
@@ -10,7 +9,6 @@ public class PlayerVisualHandler : BaseVisualHandler
         
         // 플레이어 특화 컴포넌트 참조 획득
         playerController = GetComponentInParent<PlayerController>();
-        playerStats = GetComponentInParent<PlayerStats>();
     }
 
     protected override void RegisterEventListeners()

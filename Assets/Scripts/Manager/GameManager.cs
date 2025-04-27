@@ -16,11 +16,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private SplineKnotInstantiate splineKnotData;
     public SplineKnotInstantiate SplineKnotData => splineKnotData;
 
-    // 턴 UI 참조
-    [SerializeField] private TurnUI turnUI;
-    [SerializeField] private StarPurchaseUI starPurchaseUI;
-
-
     [HideInInspector] public UnityEvent<BaseController> OnPlayerChanged;
 
     private void Awake()
@@ -91,17 +86,17 @@ public class GameManager : MonoBehaviour
         {
             // NPC 턴 시작
             npcController.ChangeState<TurnStartState>();
-
             // UI 업데이트 (NPC 턴 표시)
-            if (turnUI != null)
-                turnUI.UpdateTurnDisplay(npcController);
+            UIManager.Instance.UpdateAllUI();
         }
         else
         {
             // 사용자 플레이어 턴 시작
             PlayerController playerController = currentPlayer as PlayerController;
-            if (turnUI != null)
-                turnUI.StartPlayerTurn(playerController);
+            // UI 업데이트 (플레이어 턴 표시)
+            UIManager.Instance.UpdateAllUI();
+            // 플레이어 주사위 굴림 준비
+            playerController.PrepareToRoll();
         }
     }
 

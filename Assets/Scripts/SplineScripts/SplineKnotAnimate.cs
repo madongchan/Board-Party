@@ -68,7 +68,6 @@ public class SplineKnotAnimate : MonoBehaviour
         if (UIManager.Instance != null)
         {
             OnEnterJunction.AddListener(UIManager.Instance.OnEnterJunction);
-            OnJunctionSelection.AddListener(UIManager.Instance.OnJunctionSelection);
         }
     }
     private void OnDestroy()
@@ -85,7 +84,6 @@ public class SplineKnotAnimate : MonoBehaviour
         if (UIManager.Instance != null)
         {
             OnEnterJunction.RemoveListener(UIManager.Instance.OnEnterJunction);
-            OnJunctionSelection.RemoveListener(UIManager.Instance.OnJunctionSelection);
         }
     }
     private void Update()
