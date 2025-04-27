@@ -56,8 +56,38 @@ public class SplineKnotAnimate : MonoBehaviour
         currentT = 0;
         Spline spline = splineContainer.Splines[currentKnot.Spline];
         nextKnot = new SplineKnotIndex(currentKnot.Spline, (currentKnot.Knot + 1) % spline.Knots.Count());
-    }
 
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnEnterJunction.AddListener(VisualEffectsManager.Instance.OnEnterJunction);
+            OnJunctionSelection.AddListener(VisualEffectsManager.Instance.OnJunctionSelection);
+            OnKnotEnter.AddListener(VisualEffectsManager.Instance.OnKnotEnter);
+            OnKnotLand.AddListener(VisualEffectsManager.Instance.OnKnotLand);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnEnterJunction.AddListener(UIManager.Instance.OnEnterJunction);
+            OnJunctionSelection.AddListener(UIManager.Instance.OnJunctionSelection);
+        }
+    }
+    private void OnDestroy()
+    {
+        // 매니저 클래스에서 이벤트 해제 (추가)
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnEnterJunction.RemoveListener(VisualEffectsManager.Instance.OnEnterJunction);
+            OnJunctionSelection.RemoveListener(VisualEffectsManager.Instance.OnJunctionSelection);
+            OnKnotEnter.RemoveListener(VisualEffectsManager.Instance.OnKnotEnter);
+            OnKnotLand.RemoveListener(VisualEffectsManager.Instance.OnKnotLand);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnEnterJunction.RemoveListener(UIManager.Instance.OnEnterJunction);
+            OnJunctionSelection.RemoveListener(UIManager.Instance.OnJunctionSelection);
+        }
+    }
     private void Update()
     {
         MoveAndRotate();

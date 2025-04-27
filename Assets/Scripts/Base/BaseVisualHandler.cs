@@ -62,7 +62,7 @@ public abstract class BaseVisualHandler : MonoBehaviour
 
         if (coinGainParticle != null)
             particleRepeatInterval = coinGainParticle.emission.GetBurst(0).repeatInterval; // 파티클의 반복 간격을 가져옴
-
+    
         // 이벤트 리스너 등록
         RegisterEventListeners();
     }

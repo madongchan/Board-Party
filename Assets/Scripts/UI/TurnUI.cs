@@ -1,20 +1,14 @@
-using UnityEngine.Events;
 using System.Collections;
 using DG.Tweening;
-using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using TMPro;
-using System;
 
 // TurnUI 클래스 개선
 public class TurnUI : MonoBehaviour
 {
     [SerializeField] private BaseController currentPlayer;
-    [SerializeField] private CanvasGroup actionsCanvasGroup;
     [SerializeField] private CanvasGroup rollCanvasGroup;
     [SerializeField] private CanvasGroup starPurchasCanvasGroup;
 
@@ -27,38 +21,14 @@ public class TurnUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI startCountLabel;
     [SerializeField] private TextMeshProUGUI coinCountLabel;
 
-    [Header("States")]
-    private bool isShowingBoard;
-
-    [Header("Turn UI References")]
-    [SerializeField] private Button diceButton;
-    [SerializeField] private Button itemButton;
-    [SerializeField] private Button boardButton;
-
     [Header("Star Purchase UI References")]
     [SerializeField] private Button starConfirmButton;
     public Button StarButton => starConfirmButton;
     [SerializeField] private Button starCancelButton;
     public Button CancelStarButton => starCancelButton;
 
-    [Header("Overlay Camera Settings")]
-    [SerializeField] private CinemachineCameraOffset overlayCameraOffset;
-    private Vector3 originalCameraOffset;
-    [SerializeField] private float disableCameraOffset;
-
     private GameObject lastSelectedButton;
     private BaseStats currentPlayerStats;
-
-    void Awake()
-    {
-        actionsCanvasGroup.alpha = 0;
-        diceButton.onClick.AddListener(OnDiceButtonSelect);
-        boardButton.onClick.AddListener(OnBoardButtonSelect);
-        originalCameraOffset = overlayCameraOffset.Offset;
-        lastSelectedButton = diceButton.gameObject;
-
-        EventSystem.current.GetComponent<InputSystemUIInputModule>().cancel.action.performed += CancelPerformed;
-    }
 
     private void StatAnimation(int coinCount)
     {
@@ -136,35 +106,11 @@ public class TurnUI : MonoBehaviour
 
     private void OnDiceButtonSelect()
     {
-        lastSelectedButton = diceButton.gameObject;
         if (currentPlayer != null)
         {
             currentPlayer.PrepareToRoll();
         }
         ShowUI(false);
-    }
-
-    private void OnBoardButtonSelect()
-    {
-        lastSelectedButton = boardButton.gameObject;
-        SetBoardView(true);
-    }
-
-    void SetBoardView(bool view)
-    {
-        // FindObjectOfType 대신 GameManager를 통해 참조 획득
-        CameraHandler cameraHandler = null;
-        if (GameManager.Instance != null)
-        {
-            cameraHandler = GameManager.Instance.GetComponent<CameraHandler>();
-        }
-
-        if (cameraHandler != null)
-        {
-            cameraHandler.ShowBoard(view);
-            ShowUI(!view);
-            isShowingBoard = view;
-        }
     }
 
     void ShowUI(bool show)
@@ -174,8 +120,6 @@ public class TurnUI : MonoBehaviour
 
         if (isPlayerTurn)
         {
-            actionsCanvasGroup.DOFade(show ? 1 : 0, .3f);
-
             StartCoroutine(EventSystemSelectionDelay());
 
             IEnumerator EventSystemSelectionDelay()
@@ -187,22 +131,8 @@ public class TurnUI : MonoBehaviour
         else
         {
             // NPC 턴일 때는 UI 숨기기
-            actionsCanvasGroup.DOFade(0, .3f);
             EventSystem.current.SetSelectedGameObject(null);
         }
-    }
-
-    private void CancelPerformed(InputAction.CallbackContext context)
-    {
-        if (isShowingBoard)
-        {
-            SetBoardView(false);
-        }
-    }
-
-    void CameraOffset(float x)
-    {
-        overlayCameraOffset.Offset = originalCameraOffset + new Vector3(x, 0, 0);
     }
 
     public void FadeRollText(bool fadeText)

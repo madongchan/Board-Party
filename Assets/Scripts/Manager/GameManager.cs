@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour
 
     // 턴 UI 참조
     [SerializeField] private TurnUI turnUI;
+    [SerializeField] private StarPurchaseUI starPurchaseUI;
+
 
     [HideInInspector] public UnityEvent<BaseController> OnPlayerChanged;
 

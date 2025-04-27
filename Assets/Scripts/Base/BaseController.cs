@@ -41,12 +41,54 @@ public abstract class BaseController : MonoBehaviour
         // GameManager를 통해 SplineKnotData 참조 획득
         if (GameManager.Instance != null && GameManager.Instance.SplineKnotData != null)
             splineKnotData = GameManager.Instance.SplineKnotData;
+
+        // 매니저 클래스에 이벤트 등록 (추가)
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnRollStart.AddListener(VisualEffectsManager.Instance.OnRollStart);
+            OnRollJump.AddListener(VisualEffectsManager.Instance.OnRollJump);
+            OnRollDisplay.AddListener(VisualEffectsManager.Instance.OnRollDisplay);
+            OnRollEnd.AddListener(VisualEffectsManager.Instance.OnRollEnd);
+            OnRollCancel.AddListener(VisualEffectsManager.Instance.OnRollCancel);
+            OnMovementStart.AddListener(VisualEffectsManager.Instance.OnMovementStart);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnRollStart.AddListener(UIManager.Instance.OnRollStart);
+            OnRollDisplay.AddListener(UIManager.Instance.OnRollDisplay);
+            OnRollEnd.AddListener(UIManager.Instance.OnRollEnd);
+            OnRollCancel.AddListener(UIManager.Instance.OnRollCancel);
+            OnMovementStart.AddListener(UIManager.Instance.OnMovementStart);
+        }
+    }
+
+    protected virtual void OnDestroy()
+    {
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnRollStart.RemoveListener(VisualEffectsManager.Instance.OnRollStart);
+            OnRollJump.RemoveListener(VisualEffectsManager.Instance.OnRollJump);
+            OnRollDisplay.RemoveListener(VisualEffectsManager.Instance.OnRollDisplay);
+            OnRollEnd.RemoveListener(VisualEffectsManager.Instance.OnRollEnd);
+            OnRollCancel.RemoveListener(VisualEffectsManager.Instance.OnRollCancel);
+            OnMovementStart.RemoveListener(VisualEffectsManager.Instance.OnMovementStart);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnRollStart.RemoveListener(UIManager.Instance.OnRollStart);
+            OnRollDisplay.RemoveListener(UIManager.Instance.OnRollDisplay);
+            OnRollEnd.RemoveListener(UIManager.Instance.OnRollEnd);
+            OnRollCancel.RemoveListener(UIManager.Instance.OnRollCancel);
+            OnMovementStart.RemoveListener(UIManager.Instance.OnMovementStart);
+        }
     }
 
     protected virtual void OnDestinationKnot(SplineKnotIndex index)
     {
         if (splineKnotData == null) return;
-        
+
         SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
         if (data.skipStepCount)
             splineKnotAnimator.SkipStepCount = true;
@@ -55,7 +97,7 @@ public abstract class BaseController : MonoBehaviour
     protected virtual void OnKnotLand(SplineKnotIndex index)
     {
         if (splineKnotData == null) return;
-        
+
         SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
 
         StartCoroutine(DelayCoroutine());
@@ -65,7 +107,7 @@ public abstract class BaseController : MonoBehaviour
             data.Land(stats);
             OnMovementStart.Invoke(false);
             yield return new WaitForSeconds(2);
-            
+
             // GameManager를 통한 턴 종료 처리
             GameManager.Instance.EndCurrentTurn();
         }
@@ -74,7 +116,7 @@ public abstract class BaseController : MonoBehaviour
     protected virtual void OnKnotEnter(SplineKnotIndex index)
     {
         if (splineKnotData == null) return;
-        
+
         SplineKnotData data = splineKnotData.splineDatas[index.Spline].knots[index.Knot];
         data.EnterKnot(splineKnotAnimator);
         OnMovementUpdate.Invoke(splineKnotAnimator.Step);
@@ -115,7 +157,7 @@ public abstract class BaseController : MonoBehaviour
     {
         allowInput = allow;
     }
-    
+
     // 분기점에서 경로 선택 메서드 (공통)
     public virtual void SelectJunctionPath(int direction)
     {
@@ -124,7 +166,7 @@ public abstract class BaseController : MonoBehaviour
             splineKnotAnimator.AddToJunctionIndex(direction);
         }
     }
-    
+
     // 분기점 선택 확정 메서드 (공통)
     public virtual void ConfirmJunctionSelection()
     {
@@ -133,26 +175,31 @@ public abstract class BaseController : MonoBehaviour
             splineKnotAnimator.inJunction = false;
         }
     }
-    
+
     // 주사위 굴림 시작 메서드 (공통)
     public virtual void StartRoll()
     {
         if (!allowInput || splineKnotAnimator.isMoving || !isRolling)
             return;
-            
+
         StartCoroutine(RollSequence());
     }
-    
+
     // 주사위 굴림 취소 메서드 (공통)
     public virtual void CancelRoll()
     {
         if (!allowInput || !isRolling)
             return;
-            
+
         isRolling = false;
         OnRollCancel.Invoke();
-        
+
         // GameManager를 통한 턴 관리
         GameManager.Instance.EndCurrentTurn();
+    }
+
+    public virtual BaseStats GetStats()
+    {
+        return stats;
     }
 }

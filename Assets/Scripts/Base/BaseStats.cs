@@ -12,6 +12,8 @@ public abstract class BaseStats : MonoBehaviour
 
     [HideInInspector] public UnityEvent OnInitialize;
     [HideInInspector] public UnityEvent<int> OnAnimation;
+    [HideInInspector] public UnityEvent<int> OnCoinsChanged = new UnityEvent<int>();
+    [HideInInspector] public UnityEvent<int> OnStarsChanged = new UnityEvent<int>();
 
     protected virtual void Start()
     {
@@ -21,15 +23,16 @@ public abstract class BaseStats : MonoBehaviour
 
     public virtual void AddCoins(int amount)
     {
-        coinsBeforeChange = coins;
         coins += amount;
-        coins = Mathf.Clamp(coins, 0, 999);
+        OnCoinsChanged.Invoke(amount); // 이벤트 발생
+        UpdateStats();
     }
 
     public virtual void AddStars(int amount)
     {
         stars += amount;
-        stars = Mathf.Clamp(stars, 0, 999);
+        OnStarsChanged.Invoke(amount); // 이벤트 발생
+        UpdateStats();
     }
 
     public virtual void CoinAnimation(int value)
