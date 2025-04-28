@@ -21,13 +21,13 @@ public class IdleState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 대기 상태로 진입했습니다.");
     }
 
     public override void Update()
     {
-        
+
     }
 
     public override void Exit()
@@ -46,7 +46,7 @@ public class TurnStartState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}의 턴이 시작되었습니다.");
         // 주사위 굴림 시작
         npcController.StartRoll();
@@ -78,7 +78,7 @@ public class RollingState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 주사위 결정합니다.");
     }
 
@@ -114,7 +114,7 @@ public class MovingState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 이동을 시작합니다.");
         splineKnotAnimator = npcController.GetComponent<SplineKnotAnimate>();
         if (splineKnotAnimator == null)
@@ -177,7 +177,7 @@ public class JunctionDecisionState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 분기점에 도달했습니다.");
         decisionTimer = 0f;
         hasSelectedPath = false;
@@ -226,7 +226,7 @@ public class EventProcessingState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 이벤트를 처리합니다.");
         eventTimer = 0f;
     }
@@ -260,7 +260,7 @@ public class TurnEndState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}의 턴이 종료됩니다.");
         endTurnTimer = 0f;
         hasTurnEnded = false;
@@ -275,7 +275,7 @@ public class TurnEndState : NPCState
         {
             hasTurnEnded = true;
             // GameManager에 턴 종료 알림
-            GameManager.Instance.EndCurrentTurn();
+            //GameManager.Instance.EndCurrentTurn();
         }
     }
 
@@ -295,7 +295,7 @@ public class StarPurchaseDecisionState : NPCState
 
     public override void Enter()
     {
-        UIManager.Instance.ShowNPCState($"NPC State : {this.GetType().Name}");
+        UIManager.Instance.ShowNPCState($"{npcController.gameObject.name} State : {this.GetType().Name}");
         Debug.Log($"{npcController.name}이(가) 별 구매를 고려합니다.");
         decisionTimer = 0f;
     }

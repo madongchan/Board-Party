@@ -25,6 +25,9 @@ public abstract class BaseController : MonoBehaviour
     [HideInInspector] public UnityEvent<bool> OnMovementStart;
     [HideInInspector] public UnityEvent<int> OnMovementUpdate;
 
+    // 문제 3 수정: 턴 종료 이벤트 추가
+    [HideInInspector] public UnityEvent OnTurnEnd;
+
     [Header("States")]
     public bool isRolling;
     public bool allowInput = true;
@@ -106,10 +109,34 @@ public abstract class BaseController : MonoBehaviour
             yield return new WaitForSeconds(.08f);
             data.Land(stats);
             OnMovementStart.Invoke(false);
-            yield return new WaitForSeconds(1.5f);
 
-            // GameManager를 통한 턴 종료 처리
+            // 문제 3 수정: 카메라 블렌딩 완료 후 턴 종료 처리
+            // 카메라 핸들러가 있는 경우 카메라 줌 효과 트리거
+            if (CameraHandler.Instance != null)
+            {
+                CameraHandler.Instance.TriggerPostLandZoom();
+
+                // 카메라 블렌딩이 완료될 때까지 대기
+                yield return new WaitUntil(() => !CameraHandler.Instance.IsBlending);
+
+                // 추가 대기 시간 (선택 사항)
+                yield return new WaitForSeconds(2f);
+            }
+            else
+            {
+                // 카메라 핸들러가 없는 경우 기존 대기 시간 사용
+                yield return new WaitForSeconds(1.5f);
+            }
+
+            // 턴 종료 이벤트 발생
+            OnTurnEnd.Invoke();
+
             GameManager.Instance.EndCurrentTurn();
+            // 플레이어 컨트롤러가 아닐 경우에만 자동으로 턴 종료
+            // 플레이어는 명시적인 액션이나 이벤트로 턴 종료
+            if (!(this is PlayerController))
+            {
+            }
         }
     }
 
@@ -175,7 +202,9 @@ public abstract class BaseController : MonoBehaviour
     {
         if (splineKnotAnimator != null && splineKnotAnimator.inJunction)
         {
-            splineKnotAnimator.inJunction = false;
+            // 직접 SplineKnotAnimate의 ConfirmJunctionSelection 메서드 호출
+        splineKnotAnimator.ConfirmJunctionSelection();
+        // 기존 코드는 제거 (splineKnotAnimator.inJunction = false;)
         }
     }
 
@@ -199,6 +228,15 @@ public abstract class BaseController : MonoBehaviour
 
         // GameManager를 통한 턴 관리
         GameManager.Instance.EndCurrentTurn();
+    }
+
+    // 문제 3 수정: 플레이어 턴 종료 메서드 추가 (UI 버튼에서 호출 가능)
+    public virtual void EndTurn()
+    {
+        if (this is PlayerController && !splineKnotAnimator.isMoving)
+        {
+            GameManager.Instance.EndCurrentTurn();
+        }
     }
 
     public virtual BaseStats GetStats()

@@ -8,7 +8,7 @@ using UnityEngine.Events;
 
 public class SplineKnotAnimate : MonoBehaviour
 {
-    [SerializeField] public SplineContainer splineContainer;
+    [SerializeField] private SplineContainer splineContainer;
 
     [Header("Movement Parameters")]
     [SerializeField] private float moveSpeed = 10;
@@ -23,7 +23,7 @@ public class SplineKnotAnimate : MonoBehaviour
     private IReadOnlyList<SplineKnotIndex> connectedKnots;
 
     [Header("Interpolation")]
-    public float currentT;
+    private float currentT;
 
     [Header("Junction Parameters")]
     public int junctionIndex = 0;
@@ -35,8 +35,7 @@ public class SplineKnotAnimate : MonoBehaviour
     public bool Paused = false;
     [HideInInspector] public bool SkipStepCount = false;
 
-    // 문제 1 수정: 분기점 이후 이동 재개를 위한 변수 추가
-    private bool resumeAfterJunction = false;
+    // Removed resumeAfterJunction flag
 
     [Header("Events")]
     [HideInInspector] public UnityEvent<bool> OnEnterJunction;
@@ -50,16 +49,35 @@ public class SplineKnotAnimate : MonoBehaviour
         if (splineContainer == null)
         {
             Debug.LogError("Spline Container not assigned!");
+            enabled = false; // Disable component if container is missing
             return;
         }
 
         // Initialize position at first knot
-        currentKnot.Knot = 0;
-        currentKnot.Spline = 0;
+        currentKnot = new SplineKnotIndex(0, 0);
         currentT = 0;
-        Spline spline = splineContainer.Splines[currentKnot.Spline];
-        nextKnot = new SplineKnotIndex(currentKnot.Spline, (currentKnot.Knot + 1) % spline.Knots.Count());
+        // Ensure spline index is valid before accessing
+        if (currentKnot.Spline < splineContainer.Splines.Count)
+        {
+            Spline spline = splineContainer.Splines[currentKnot.Spline];
+            if (spline.Knots.Count() > 1)
+            {
+                nextKnot = new SplineKnotIndex(currentKnot.Spline, 1);
+            }
+            else
+            {
+                // Handle single-knot spline case if necessary
+                nextKnot = currentKnot;
+            }
+        }
+        else
+        {
+            Debug.LogError("Initial spline index is out of bounds!");
+            enabled = false;
+            return;
+        }
 
+        // Register events with managers (with null checks)
         if (VisualEffectsManager.Instance != null)
         {
             OnEnterJunction.AddListener(VisualEffectsManager.Instance.OnEnterJunction);
@@ -73,9 +91,10 @@ public class SplineKnotAnimate : MonoBehaviour
             OnEnterJunction.AddListener(UIManager.Instance.OnEnterJunction);
         }
     }
+
     private void OnDestroy()
     {
-        // 매니저 클래스에서 이벤트 해제 (추가)
+        // Unregister events (with null checks)
         if (VisualEffectsManager.Instance != null)
         {
             OnEnterJunction.RemoveListener(VisualEffectsManager.Instance.OnEnterJunction);
@@ -89,25 +108,29 @@ public class SplineKnotAnimate : MonoBehaviour
             OnEnterJunction.RemoveListener(UIManager.Instance.OnEnterJunction);
         }
     }
+
     private void Update()
     {
+        // Only call MoveAndRotate if needed (e.g., if moving or interpolating)
+        // This check might be optional depending on performance needs
+        // if (isMoving || transform.position != (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, currentT))
+        // {
         MoveAndRotate();
-
-        // 문제 1 수정: 분기점 이후 이동 재개 처리
-        if (resumeAfterJunction && !inJunction && !isMoving && remainingSteps > 0)
-        {
-            Debug.Log($"Resuming movement after junction at index {junctionIndex}");
-            resumeAfterJunction = false;
-            StartCoroutine(MoveAlongSpline());
-        }
+        // }
+        // Removed Update logic for restarting movement after junction
     }
 
     public void Animate(int stepAmount = 1)
     {
         if (isMoving)
         {
-            Debug.Log("Already animating");
+            Debug.LogWarning("Animate called while already moving.");
             return;
+        }
+        if (inJunction)
+        {
+            Debug.LogWarning("Animate called while in junction.");
+            return; // Don't start animating if waiting at a junction
         }
 
         remainingSteps = stepAmount;
@@ -116,151 +139,269 @@ public class SplineKnotAnimate : MonoBehaviour
 
     IEnumerator MoveAlongSpline()
     {
-        if (inJunction)
-        {
-            // 문제 1 수정: 분기점에서 이동 재개를 위한 플래그 설정
-            resumeAfterJunction = true;
-            yield return new WaitUntil(() => inJunction == false);
-            OnEnterJunction.Invoke(false);
-            SelectJunctionPath(junctionIndex);
-
-            // 문제 1 수정: 분기점 선택 후 약간의 지연 추가
-            yield return new WaitForSeconds(0.1f);
-        }
+        // Removed junction check at the start
 
         if (Paused)
             yield return new WaitUntil(() => Paused == false);
 
-        isMoving = true;
+        isMoving = true; // Start moving
 
-        Spline spline = splineContainer.Splines[currentKnot.Spline];
-        nextKnot = new SplineKnotIndex(currentKnot.Spline, (currentKnot.Knot + 1) % spline.Knots.Count());
-        currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-        float nextT;
-
-        OnDestinationKnot.Invoke(nextKnot);
-
-        if (nextKnot.Knot == 0 && spline.Closed)
-            nextT = 1f;
-        else
-            nextT = spline.ConvertIndexUnit(nextKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-
-        while (currentT != nextT)
+        // Ensure spline index is valid
+        if (currentKnot.Spline >= splineContainer.Splines.Count)
         {
-            // Move currentT toward nextT using the adjusted speed
-            currentT = Mathf.MoveTowards(currentT, nextT, AdjustedMovementSpeed(spline) * Time.deltaTime);
+            Debug.LogError($"Current spline index {currentKnot.Spline} is out of bounds!");
+            isMoving = false;
+            yield break;
+        }
+        Spline spline = splineContainer.Splines[currentKnot.Spline];
+
+        // Calculate next knot, handle closed splines correctly
+        int nextKnotIndex = (currentKnot.Knot + 1);
+        bool isLooping = false;
+        if (nextKnotIndex >= spline.Knots.Count())
+        {
+            if (spline.Closed)
+            {
+                nextKnotIndex = 0;
+                isLooping = true;
+            }
+            else
+            {
+                Debug.LogWarning("Reached end of open spline.");
+                isMoving = false;
+                OnKnotLand.Invoke(currentKnot); // Land at the last knot
+                yield break;
+            }
+        }
+        nextKnot = new SplineKnotIndex(currentKnot.Spline, nextKnotIndex);
+
+        // Calculate target T value
+        currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        float nextT = isLooping ? 1f : spline.ConvertIndexUnit(nextKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+
+        OnDestinationKnot.Invoke(nextKnot); // Event for next destination
+
+        // Move towards nextT
+        while (currentT < nextT)
+        {
+            // Check for potential issues like NaN or infinite values
+            float step = AdjustedMovementSpeed(spline) * Time.deltaTime;
+            if (float.IsNaN(step) || float.IsInfinity(step) || step <= 0)
+            {
+                Debug.LogError("Invalid movement step calculated. Breaking movement.");
+                isMoving = false;
+                yield break; // Exit coroutine to prevent infinite loop
+            }
+            currentT = Mathf.MoveTowards(currentT, nextT, step);
             yield return null;
         }
 
-        if (currentT >= nextT)
+        // Reached the knot (currentT >= nextT)
+        currentKnot = nextKnot;
+        if (isLooping) currentT = 0; // Reset T if looped on closed spline
+
+        OnKnotEnter.Invoke(currentKnot); // Event for entering the knot
+
+        // Check for connections and junctions
+        splineContainer.KnotLinkCollection.TryGetKnotLinks(currentKnot, out connectedKnots);
+
+        if (IsJunctionKnot(currentKnot)) // Check if the arrived knot is a junction
         {
-            currentKnot = nextKnot;
-            nextKnot = new SplineKnotIndex(currentKnot.Spline, (currentKnot.Knot + 1) % spline.Knots.Count());
-
-            if (nextT == 1)
-                currentT = 0;
-
-            splineContainer.KnotLinkCollection.TryGetKnotLinks(currentKnot, out connectedKnots);
-
-            if (IsJunctionKnot(currentKnot))
-            {
-                inJunction = true;
-                junctionIndex = 0;
-                isMoving = false;
-                OnEnterJunction.Invoke(true);
-                OnJunctionSelection.Invoke(junctionIndex);
-            }
+            inJunction = true;
+            junctionIndex = 0; // Default selection
+            isMoving = false; // Stop movement, wait for selection
+            OnEnterJunction.Invoke(true); // Trigger junction UI/visuals
+            OnJunctionSelection.Invoke(junctionIndex); // Update visuals for default selection
+            // Coroutine ends here, movement restart handled by ConfirmJunctionSelection
+        }
+        else // Not a junction knot
+        {
+            // Decrement steps if applicable
+            if (!SkipStepCount)
+                remainingSteps--;
             else
-            {
-                //Movement only count on non-junction knots and when nothin overrides the skip property
-                if (!SkipStepCount)
-                    remainingSteps--;
-                else
-                    SkipStepCount = false;
-            }
+                SkipStepCount = false;
 
-            OnKnotEnter.Invoke(currentKnot);
-
+            // Handle transitions between splines if necessary (IsLastKnot logic)
             if (IsLastKnot(currentKnot) && connectedKnots != null)
             {
+                bool foundNext = false;
                 foreach (SplineKnotIndex connKnot in connectedKnots)
                 {
-                    if (!IsLastKnot(connKnot))
+                    // Ensure connected knot is valid
+                    if (connKnot.Spline < splineContainer.Splines.Count && connKnot.Knot < splineContainer.Splines[connKnot.Spline].Knots.Count())
                     {
-                        currentKnot = connKnot;
-                        currentT = splineContainer.Splines[currentKnot.Spline].ConvertIndexUnit(connKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                        if (!IsLastKnot(connKnot)) // Find a connected knot that isn't an end knot
+                        {
+                            currentKnot = connKnot; // Switch to the new spline/knot
+                            currentT = splineContainer.Splines[currentKnot.Spline].ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                            foundNext = true;
+                            break;
+                        }
                     }
+                    else
+                    {
+                        Debug.LogWarning($"Invalid connected knot link: {connKnot}");
+                    }
+                }
+                if (!foundNext)
+                {
+                    remainingSteps = 0; // Force stop if at end and no valid continuation found
                 }
             }
 
+            // Check if movement should continue
             if (remainingSteps > 0)
             {
-                // 문제 1 수정: 분기점이 아닌 경우에만 즉시 다음 이동 시작
-                if (!inJunction)
-                {
-                    StartCoroutine(MoveAlongSpline());
-                }
-                // 분기점인 경우 resumeAfterJunction 플래그가 이미 설정되어 있으므로 Update에서 처리됨
+                // Continue moving immediately since it's not a junction
+                StartCoroutine(MoveAlongSpline());
             }
-            else
+            else // No steps remaining
             {
                 isMoving = false;
-                OnKnotLand.Invoke(currentKnot);
+                OnKnotLand.Invoke(currentKnot); // Landed on the final knot
             }
         }
     }
 
-    void MoveAndRotate()
+    // Centralized method to handle junction confirmation and movement restart
+    public void ConfirmJunctionSelection()
     {
-        float movementBlend = Mathf.Pow(0.5f, Time.deltaTime * movementLerp);
+        if (!inJunction) return;
 
-        Vector3 targetPosition = (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, currentT);
-        transform.position = Vector3.Lerp(targetPosition, transform.position, movementBlend);
+        inJunction = false;
+        OnEnterJunction.Invoke(false); // Hide junction UI/visuals
+        SelectJunctionPath(junctionIndex); // Apply the selected path (updates currentKnot, nextKnot, currentT)
 
-        splineContainer.Splines[currentKnot.Spline].Evaluate(currentT, out float3 position, out float3 direction, out float3 up);
-
-        Vector3 worldDirection = splineContainer.transform.TransformDirection(direction);
-
-        if (worldDirection.sqrMagnitude > 0.0001f && isMoving)
-            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(worldDirection, Vector3.up), rotationLerp * Time.deltaTime);
+        // Check if movement should resume
+        if (remainingSteps > 0)
+        {
+            if (!isMoving) // Ensure we are not somehow already moving
+            {
+                // Add a small delay before restarting movement to allow systems to update
+                StartCoroutine(ResumeMoveAfterDelay(0.05f));
+            }
+            else
+            {
+                Debug.LogWarning("ConfirmJunctionSelection called but already moving?");
+            }
+        }
+        else // No steps remaining after junction (e.g., landed exactly on junction)
+        {
+            isMoving = false;
+            OnKnotLand.Invoke(currentKnot);
+        }
     }
 
+    private IEnumerator ResumeMoveAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (!isMoving && remainingSteps > 0) // Double check state before starting
+        {
+            StartCoroutine(MoveAlongSpline()); // Resume movement
+        }
+    }
+
+    // SelectJunctionPath: Updates currentKnot, nextKnot, currentT based on index
+    public void SelectJunctionPath(int index)
+    {
+        if (walkableKnots == null || walkableKnots.Count == 0)
+        {
+            Debug.LogError("SelectJunctionPath called with no walkable knots available.");
+            return;
+        }
+        if (index < 0 || index >= walkableKnots.Count)
+        {
+            Debug.LogError($"Invalid junction index {index} selected. Clamping to 0.");
+            index = 0; // Clamp to valid index
+        }
+
+        SplineKnotIndex selectedKnot = walkableKnots[index];
+
+        // Validate selected knot index before using
+        if (selectedKnot.Spline >= splineContainer.Splines.Count || selectedKnot.Knot >= splineContainer.Splines[selectedKnot.Spline].Knots.Count())
+        {
+            Debug.LogError($"Selected walkable knot {selectedKnot} is invalid!");
+            return;
+        }
+
+        currentKnot = selectedKnot; // Update current knot to the start of the selected path
+
+        // Update nextKnot and currentT based on the new spline/knot
+        Spline spline = splineContainer.Splines[currentKnot.Spline];
+        int nextKnotIndex = (currentKnot.Knot + 1);
+        bool isLooping = false;
+        if (nextKnotIndex >= spline.Knots.Count())
+        {
+            if (spline.Closed)
+            {
+                nextKnotIndex = 0;
+                isLooping = true;
+            }
+            else
+            {
+                Debug.LogWarning("Selected path leads immediately to the end of an open spline.");
+                // Land at the selected knot if it's the end
+                nextKnot = currentKnot;
+                currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                walkableKnots.Clear();
+                // Consider landing immediately if remainingSteps was 1?
+                // For now, let ConfirmJunctionSelection handle landing if remainingSteps is 0.
+                return;
+            }
+        }
+        nextKnot = new SplineKnotIndex(currentKnot.Spline, nextKnotIndex);
+        currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+
+        walkableKnots.Clear(); // Clear options after selection
+    }
+
+    // AddToJunctionIndex: Updates selection index and invokes event
     public void AddToJunctionIndex(int amount)
     {
-        if (!inJunction)
+        if (!inJunction || walkableKnots == null || walkableKnots.Count == 0)
             return;
         junctionIndex = (int)Mathf.Repeat(junctionIndex + amount, walkableKnots.Count);
         OnJunctionSelection.Invoke(junctionIndex);
     }
 
-    public void SelectJunctionPath(int index)
-    {
-        if (walkableKnots.Count < 1)
-            return;
-
-        SplineKnotIndex selectedKnot = walkableKnots[index];
-        currentKnot = selectedKnot;
-
-        Spline spline = splineContainer.Splines[currentKnot.Spline];
-        nextKnot = new SplineKnotIndex(currentKnot.Spline, (currentKnot.Knot + 1) % spline.Knots.Count());
-
-        currentT = splineContainer.Splines[currentKnot.Spline].ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-
-        walkableKnots.Clear();
-    }
-
+    // GetJunctionPathPosition: Calculates position for visuals
     public Vector3 GetJunctionPathPosition(int index)
     {
-        if (walkableKnots.Count < 1)
-            return Vector3.zero;
+        if (walkableKnots == null || walkableKnots.Count <= index || index < 0)
+            return transform.position; // Return current position if invalid
 
         SplineKnotIndex walkableKnotIndex = walkableKnots[index];
+
+        // Validate index
+        if (walkableKnotIndex.Spline >= splineContainer.Splines.Count)
+            return transform.position;
         Spline walkableSpline = splineContainer.Splines[walkableKnotIndex.Spline];
-        SplineKnotIndex nextWalkableKnotIndex = new SplineKnotIndex(walkableKnotIndex.Spline, (walkableKnotIndex.Knot + 1) % walkableSpline.Knots.Count());
-        Vector3 knotPosition = (Vector3)walkableSpline.Knots.ToArray()[nextWalkableKnotIndex.Knot].Position + splineContainer.transform.position;
-        return knotPosition;
+        if (walkableKnotIndex.Knot >= walkableSpline.Knots.Count())
+            return transform.position;
+
+        // Get position of the *next* knot on the selected path for direction
+        int nextWalkableKnotNum = (walkableKnotIndex.Knot + 1);
+        if (nextWalkableKnotNum >= walkableSpline.Knots.Count())
+        {
+            if (walkableSpline.Closed)
+                nextWalkableKnotNum = 0;
+            else
+                // If path ends immediately, point towards the knot itself from current pos?
+                return (Vector3)splineContainer.EvaluatePosition(walkableKnotIndex.Spline, splineContainer.Splines[walkableKnotIndex.Spline].ConvertIndexUnit(walkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized));
+        }
+
+        SplineKnotIndex nextWalkableKnotIndex = new SplineKnotIndex(walkableKnotIndex.Spline, nextWalkableKnotNum);
+        // Evaluate position slightly along the path for better direction
+        float targetT = walkableSpline.ConvertIndexUnit(walkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        float nextTargetT = walkableSpline.ConvertIndexUnit(nextWalkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        if (nextTargetT < targetT) nextTargetT = 1f; // Handle loop wrap
+        float sampleT = Mathf.Lerp(targetT, nextTargetT, 0.1f); // Sample 10% along the segment
+
+        return (Vector3)splineContainer.EvaluatePosition(walkableKnotIndex.Spline, sampleT);
     }
 
+    // IsJunctionKnot: Determines if a knot is a junction
     bool IsJunctionKnot(SplineKnotIndex knotIndex)
     {
         walkableKnots.Clear();
@@ -273,7 +414,18 @@ public class SplineKnotAnimate : MonoBehaviour
         // Check each connected spline
         foreach (SplineKnotIndex connection in connectedKnots)
         {
+            // Validate connection index
+            if (connection.Spline >= splineContainer.Splines.Count)
+            {
+                Debug.LogWarning($"Invalid connection spline index {connection.Spline}");
+                continue;
+            }
             var spline = splineContainer.Splines[connection.Spline];
+            if (connection.Knot >= spline.Knots.Count())
+            {
+                Debug.LogWarning($"Invalid connection knot index {connection.Knot} on spline {connection.Spline}");
+                continue;
+            }
 
             if (!IsLastKnot(connection))
             {
@@ -282,36 +434,72 @@ public class SplineKnotAnimate : MonoBehaviour
             }
         }
 
-        // Sort walkableKnots by spline index number
+        // Sort walkableKnots by spline index number (optional, but consistent)
         walkableKnots.Sort((knot1, knot2) => knot1.Spline.CompareTo(knot2.Spline));
 
         if (divergingPaths <= 1)
-            walkableKnots.Clear();
+        {
+            walkableKnots.Clear(); // Not a junction if 0 or 1 path forward
+            return false;
+        }
 
-        // If we have more than one path starting from this knot, it's an origin
-        return divergingPaths > 1;
+        return true; // It's a junction if more than one path forward
     }
 
-
+    // IsLastKnot: Checks if a knot is the last on an open spline
     bool IsLastKnot(SplineKnotIndex knotIndex)
     {
+        // Validate index
+        if (knotIndex.Spline >= splineContainer.Splines.Count)
+            return true; // Treat invalid index as end
         var spline = splineContainer.Splines[knotIndex.Spline];
-        return knotIndex.Knot >= spline.Knots.ToArray().Length - 1 && !splineContainer.Splines[knotIndex.Spline].Closed;
+        if (knotIndex.Knot >= spline.Knots.Count())
+            return true; // Treat invalid index as end
+
+        return knotIndex.Knot >= spline.Knots.Count() - 1 && !spline.Closed;
     }
 
+    // AdjustedMovementSpeed: Calculates speed relative to spline length
     float AdjustedMovementSpeed(Spline spline)
     {
-        // Calculate the total spline length
+        if (spline == null) return 0;
         float splineLength = spline.GetLength();
-
-        // Adjust speed relative to spline length
+        // Avoid division by zero or very small lengths
+        if (splineLength < 0.001f) return moveSpeed; // Return base speed or a large number
         return moveSpeed / splineLength;
     }
 
+    // MoveAndRotate: Updates transform position and rotation based on currentT
+    void MoveAndRotate()
+    {
+        if (splineContainer == null || currentKnot.Spline >= splineContainer.Splines.Count)
+            return;
+
+        // Lerp position for smoothness
+        float movementBlend = 1f - Mathf.Pow(0.5f, Time.deltaTime * movementLerp);
+        Vector3 targetPosition = (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, currentT);
+        transform.position = Vector3.Lerp(transform.position, targetPosition, movementBlend);
+
+        // Lerp rotation for smoothness
+        splineContainer.Splines[currentKnot.Spline].Evaluate(currentT, out float3 position, out float3 direction, out float3 up);
+        Vector3 worldDirection = splineContainer.transform.TransformDirection(direction);
+
+        if (worldDirection.sqrMagnitude > 0.0001f) // Check for valid direction
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(worldDirection, splineContainer.transform.TransformDirection(up));
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationLerp * Time.deltaTime);
+        }
+    }
+
+    // OnDrawGizmos: For debugging junction path selection
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
-        if (inJunction)
-            Gizmos.DrawSphere(GetJunctionPathPosition(junctionIndex), 1);
+        if (inJunction && splineContainer != null)
+        {
+            Gizmos.color = Color.red;
+            Vector3 targetVisPos = GetJunctionPathPosition(junctionIndex);
+            // Draw sphere slightly above ground
+            Gizmos.DrawSphere(targetVisPos + Vector3.up * 0.1f, 0.5f);
+        }
     }
 }
