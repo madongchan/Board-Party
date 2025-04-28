@@ -396,7 +396,7 @@ public class VisualEffectsManager : MonoBehaviour
 
         for (int i = 0; i < currentSplineKnotAnimator.walkableKnots.Count; i++)
         {
-            GameObject arrow = Instantiate(junctionArrowPrefab.gameObject, junctionVisualsObject.transform);
+            GameObject arrow = Instantiate(junctionArrowPrefab.gameObject, currentController.transform.position, Quaternion.identity);
             junctionArrows.Add(arrow);
 
             // 화살표 방향 설정

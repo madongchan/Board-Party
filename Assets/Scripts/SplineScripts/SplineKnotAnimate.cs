@@ -8,7 +8,7 @@ using UnityEngine.Events;
 
 public class SplineKnotAnimate : MonoBehaviour
 {
-    [SerializeField] private SplineContainer splineContainer;
+    [SerializeField] public SplineContainer splineContainer;
 
     [Header("Movement Parameters")]
     [SerializeField] private float moveSpeed = 10;
@@ -23,7 +23,7 @@ public class SplineKnotAnimate : MonoBehaviour
     private IReadOnlyList<SplineKnotIndex> connectedKnots;
 
     [Header("Interpolation")]
-    private float currentT;
+    public float currentT;
 
     [Header("Junction Parameters")]
     public int junctionIndex = 0;
@@ -34,6 +34,9 @@ public class SplineKnotAnimate : MonoBehaviour
     public bool inJunction = false;
     public bool Paused = false;
     [HideInInspector] public bool SkipStepCount = false;
+
+    // 문제 1 수정: 분기점 이후 이동 재개를 위한 변수 추가
+    private bool resumeAfterJunction = false;
 
     [Header("Events")]
     [HideInInspector] public UnityEvent<bool> OnEnterJunction;
@@ -89,6 +92,14 @@ public class SplineKnotAnimate : MonoBehaviour
     private void Update()
     {
         MoveAndRotate();
+
+        // 문제 1 수정: 분기점 이후 이동 재개 처리
+        if (resumeAfterJunction && !inJunction && !isMoving && remainingSteps > 0)
+        {
+            Debug.Log($"Resuming movement after junction at index {junctionIndex}");
+            resumeAfterJunction = false;
+            StartCoroutine(MoveAlongSpline());
+        }
     }
 
     public void Animate(int stepAmount = 1)
@@ -107,9 +118,14 @@ public class SplineKnotAnimate : MonoBehaviour
     {
         if (inJunction)
         {
+            // 문제 1 수정: 분기점에서 이동 재개를 위한 플래그 설정
+            resumeAfterJunction = true;
             yield return new WaitUntil(() => inJunction == false);
             OnEnterJunction.Invoke(false);
             SelectJunctionPath(junctionIndex);
+
+            // 문제 1 수정: 분기점 선택 후 약간의 지연 추가
+            yield return new WaitForSeconds(0.1f);
         }
 
         if (Paused)
@@ -179,16 +195,19 @@ public class SplineKnotAnimate : MonoBehaviour
 
             if (remainingSteps > 0)
             {
-                StartCoroutine(MoveAlongSpline());
+                // 문제 1 수정: 분기점이 아닌 경우에만 즉시 다음 이동 시작
+                if (!inJunction)
+                {
+                    StartCoroutine(MoveAlongSpline());
+                }
+                // 분기점인 경우 resumeAfterJunction 플래그가 이미 설정되어 있으므로 Update에서 처리됨
             }
             else
             {
                 isMoving = false;
                 OnKnotLand.Invoke(currentKnot);
             }
-
         }
-
     }
 
     void MoveAndRotate()

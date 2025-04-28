@@ -12,7 +12,7 @@ public class CameraHandler : MonoBehaviour
     [SerializeField] private CinemachineCamera defaultCamera;
     [SerializeField] private CinemachineCamera zoomCamera;
     [SerializeField] private CinemachineCamera junctionCamera;
-    [SerializeField] private CinemachineCamera boardCamera;
+    //[SerializeField] private CinemachineCamera boardCamera;
     // [SerializeField] private Volume depthOfFieldVolume;
 
     [Header("States")]
@@ -45,6 +45,8 @@ public class CameraHandler : MonoBehaviour
         defaultCamera.LookAt = controller.transform;
         zoomCamera.Follow = controller.transform;
         zoomCamera.LookAt = controller.transform;
+        junctionCamera.Follow = controller.transform;
+        junctionCamera.LookAt = controller.transform;
 
         // 이벤트 리스너 등록
         currentController.OnRollStart.AddListener(OnRollStart);

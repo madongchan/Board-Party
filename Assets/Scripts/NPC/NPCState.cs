@@ -15,7 +15,6 @@ public abstract class NPCState
 }
 
 // 대기 상태: 자신의 턴을 기다리는 상태
-// 대기 상태: 자신의 턴을 기다리는 상태
 public class IdleState : NPCState
 {
     public IdleState(NPCController controller) : base(controller) { }
@@ -124,11 +123,11 @@ public class MovingState : NPCState
             npcController.ChangeState<IdleState>();
             return;
         }
+        npcController.Move();
     }
 
     public override void Update()
     {
-        npcController.Move();
         // 분기점에 도달했는지 확인
         if (splineKnotAnimator.inJunction)
         {
@@ -339,3 +338,4 @@ public class StarPurchaseDecisionState : NPCState
         // 별 구매 결정 상태 종료 시 필요한 정리
     }
 }
+
