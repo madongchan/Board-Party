@@ -18,4 +18,8 @@ public static class GameEvents
     // 아이템/이벤트 관련 이벤트
     public static UnityEvent<BaseController, int> OnCoinsChanged = new UnityEvent<BaseController, int>();
     public static UnityEvent<BaseController, int> OnStarsChanged = new UnityEvent<BaseController, int>();
+    
+    // 미니게임 관련 이벤트
+    public static UnityEvent OnMinigameStart = new UnityEvent();
+    public static UnityEvent<int[]> OnMinigameEnd = new UnityEvent<int[]>();
 }

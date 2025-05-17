@@ -1,26 +1,18 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// PlayerController 클래스 - 사용자 플레이어 제어
-/// 사용자 입력을 처리하고 플레이어 동작을 구현합니다.
-/// </summary>
+
 public class PlayerController : BaseController
 {
-    /// <summary>
-    /// 초기화
-    /// </summary>
-    public override void Initialize()
+    protected override void Start()
     {
-        base.Initialize();
+        base.Start();
         PrepareToRoll();
     }
     
     // New Input System 입력 처리 메서드
     
-    /// <summary>
-    /// 점프 버튼 (주사위 굴림 또는 분기점 선택 확정)
-    /// </summary>
+    // 점프 버튼 (주사위 굴림 또는 분기점 선택 확정)
     void OnJump()
     {
         if (!allowInput)
@@ -33,8 +25,6 @@ public class PlayerController : BaseController
         {
             // 분기점 선택 확정
             ConfirmJunctionSelection();
-            // 분기점 결정 상태로 전환
-            ChangeState<JunctionDecisionState>();
         }
         else
         {
@@ -42,15 +32,11 @@ public class PlayerController : BaseController
             {
                 // 주사위 굴림 시작
                 StartRoll();
-                // 주사위 굴림 상태로 전환
-                ChangeState<RollingState>();
             }
         }
     }
 
-    /// <summary>
-    /// 이동 입력 (분기점에서 경로 선택)
-    /// </summary>
+    // 이동 입력 (분기점에서 경로 선택)
     void OnMove(InputValue value)
     {
         if (!allowInput)
@@ -62,9 +48,7 @@ public class PlayerController : BaseController
             SelectJunctionPath(-(int)value.Get<Vector2>().x);
     }
 
-    /// <summary>
-    /// 취소 버튼 (주사위 굴림 취소)
-    /// </summary>
+    // 취소 버튼 (주사위 굴림 취소)
     void OnCancel()
     {
         if (!allowInput)
