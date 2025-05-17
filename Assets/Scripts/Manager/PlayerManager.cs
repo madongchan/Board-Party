@@ -86,14 +86,4 @@ public class PlayerManager : MonoBehaviour
             players[randomIndex] = temp;
         }
     }
-
-    public BaseController GetPlayerController()
-    {
-        return players.Find(player => player.CompareTag("Player"));
-    }
-
-    public List<BaseController> GetNPCControllers()
-    {
-        return players.FindAll(player => player.CompareTag("NPC"));
-    }
 }

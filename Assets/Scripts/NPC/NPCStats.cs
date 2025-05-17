@@ -1,10 +1,13 @@
 using UnityEngine;
 
-/// <summary>
-/// NPCStats 클래스 - NPC 캐릭터의 스탯 관리
-/// NPC 고유의 스탯 및 데이터 관리를 담당합니다.
-/// </summary>
 public class NPCStats : BaseStats
 {
-    // 현재 NPC 스탯은 없음
+    // NPC 특화 기능 추가
+    // 예: 초기 코인/별 설정
+    protected override void Start()
+    {
+        // 초기 설정
+        coins = Random.Range(10, 20);
+        base.Start();
+    }
 }

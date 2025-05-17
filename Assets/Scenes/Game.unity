@@ -1456,53 +1456,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1838907401201752684, guid: 34dea9199eab04e16a102a2c6e0faeb4, type: 3}
   m_PrefabInstance: {fileID: 313121806}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &329304570
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 329304572}
-  - component: {fileID: 329304571}
-  m_Layer: 0
-  m_Name: TurnManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &329304571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 329304570}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a94b56d36a2f82646ab57f7dce32c8e5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  OnTurnStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!4 &329304572
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 329304570}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -4906,14 +4859,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 913414085}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f11f8f9e3f4497a4cb074561a78f102c, type: 3}
+  m_Script: {fileID: 11500000, guid: 6c6af2feba5c14443b657a667cea8a67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  turnManager: {fileID: 329304571}
-  playerManager: {fileID: 2049822140}
-  uiManager: {fileID: 488498985}
-  visualEffectsManager: {fileID: 1917045794}
-  cameraHandler: {fileID: 482135521}
+  players:
+  - {fileID: 1049055554041663010}
+  - {fileID: 8100614385240447160}
+  - {fileID: 2050305981}
+  currentPlayerIndex: -1
   splineKnotData: {fileID: 1728746069}
   OnPlayerChanged:
     m_PersistentCalls:
@@ -5173,6 +5126,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 933517359}
+  - component: {fileID: 933517360}
   - component: {fileID: 933517361}
   m_Layer: 5
   m_Name: RollUI
@@ -5201,6 +5155,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &933517360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 933517358}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18fa980169a9b4c6fbe86bbd78f97f90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!225 &933517361
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -7452,11 +7418,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b263cbb4cef8084cb3da4889807aaea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpHeight: 1
+  characterModel: {fileID: 1472769691}
+  jumpPower: 1
   jumpDuration: 0.53
-  decisionParticle: {fileID: 0}
-  thoughtBubble: {fileID: 0}
-  thoughtBubbleDisplayTime: 1.5
 --- !u!1001 &1309441506
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7984,6 +7948,11 @@ Transform:
 Transform:
   m_CorrespondingSourceObject: {fileID: 4232250064891754, guid: 1e3861f9ad1beae4eadd9ad081712f57, type: 3}
   m_PrefabInstance: {fileID: 2121810532}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1472769691 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4978345321326062, guid: 18ff8a7a7ca91ff4bab92d116fa797c8, type: 3}
+  m_PrefabInstance: {fileID: 1611570712}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &1534849874 stripped
 Transform:
@@ -10232,54 +10201,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7358961903864977352, guid: 5c11467321dac483a8e7a8f1ecf64346, type: 3}
   m_PrefabInstance: {fileID: 1985929214}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2049822139
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2049822141}
-  - component: {fileID: 2049822140}
-  m_Layer: 0
-  m_Name: PlayerManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2049822140
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2049822139}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 81b9f42be27853941ae26e2bbb352072, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  players: []
---- !u!4 &2049822141
+--- !u!4 &2003241122 stripped
 Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 4159740946864218, guid: 18ff8a7a7ca91ff4bab92d116fa797c8, type: 3}
+  m_PrefabInstance: {fileID: 865365974}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2049822139}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 4561507577664416175}
-  - {fileID: 7402338356157654797}
-  - {fileID: 2050305983}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2050305978
 GameObject:
   m_ObjectHideFlags: 0
@@ -10434,6 +10360,21 @@ MonoBehaviour:
   inJunction: 0
   Paused: 0
   SkipStepCount: 0
+  OnEnterJunction:
+    m_PersistentCalls:
+      m_Calls: []
+  OnJunctionSelection:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDestinationKnot:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotEnter:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotLand:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &2050305981
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10446,9 +10387,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67b72f07c58cee94aaa5f4654efc4d61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uniqueId: 
-  decisionDelay: 1
-  moveDelay: 0.5
+  jumpDelay: 0.5
+  resultDelay: 0.5
+  startMoveDelay: 0.5
+  OnRollStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollJump:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollDisplay:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollCancel:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementUpdate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnTurnEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  isRolling: 0
+  allowInput: 1
 --- !u!114 &2050305982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10464,6 +10431,18 @@ MonoBehaviour:
   coins: 15
   stars: 0
   coinsBeforeChange: 0
+  OnInitialize:
+    m_PersistentCalls:
+      m_Calls: []
+  OnAnimation:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCoinsChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnStarsChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &2050305983
 Transform:
   m_ObjectHideFlags: 0
@@ -10472,13 +10451,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2050305978}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1303264589}
-  m_Father: {fileID: 2049822141}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &2074151849 stripped
 Transform:
@@ -20525,43 +20504,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85664b3254b2247ae8200dc2c0ade339, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uniqueId: 
-  rollAction:
-    m_Name: Roll
-    m_Type: 0
-    m_ExpectedControlType: 
-    m_Id: 1381f68b-84f7-4a76-963d-462fc7b771fc
-    m_Processors: 
-    m_Interactions: 
-    m_SingletonActionBindings: []
-    m_Flags: 0
-  confirmAction:
-    m_Name: Confirm
-    m_Type: 0
-    m_ExpectedControlType: 
-    m_Id: 984e0925-1936-49cf-a946-133cd0065607
-    m_Processors: 
-    m_Interactions: 
-    m_SingletonActionBindings: []
-    m_Flags: 0
-  cancelAction:
-    m_Name: Cancel
-    m_Type: 0
-    m_ExpectedControlType: 
-    m_Id: 29906a5c-31f4-41f6-b47c-abc7c06d12d8
-    m_Processors: 
-    m_Interactions: 
-    m_SingletonActionBindings: []
-    m_Flags: 0
-  navigationAction:
-    m_Name: Navigation
-    m_Type: 0
-    m_ExpectedControlType: 
-    m_Id: 65df052e-079a-4ce6-a20e-b08390e2462c
-    m_Processors: 
-    m_Interactions: 
-    m_SingletonActionBindings: []
-    m_Flags: 0
+  jumpDelay: 0.5
+  resultDelay: 0.5
+  startMoveDelay: 0.5
+  OnRollStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollJump:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollDisplay:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollCancel:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementUpdate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnTurnEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  isRolling: 0
+  allowInput: 1
 --- !u!224 &1084867741364463163
 RectTransform:
   m_ObjectHideFlags: 0
@@ -20730,6 +20701,18 @@ MonoBehaviour:
     DissipationDistance: 100
     PropagationSpeed: 343
   DefaultVelocity: {x: 0, y: -0.04, z: 0}
+--- !u!114 &1406595251083242985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3616987608091571723}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e0704204bfb34dc48cc5897adae152c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &1421587246766394439
 Transform:
   m_ObjectHideFlags: 0
@@ -30773,6 +30756,21 @@ MonoBehaviour:
   inJunction: 0
   Paused: 0
   SkipStepCount: 0
+  OnEnterJunction:
+    m_PersistentCalls:
+      m_Calls: []
+  OnJunctionSelection:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDestinationKnot:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotEnter:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotLand:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3237186624900272540
 GameObject:
   m_ObjectHideFlags: 0
@@ -30940,6 +30938,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3320932131546938262}
+  - component: {fileID: 1406595251083242985}
   - component: {fileID: 6178517676461453372}
   - component: {fileID: 4373198486155005224}
   - component: {fileID: 3874205603968712341}
@@ -31650,13 +31649,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4775139033269381102}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4978210972975675494}
-  m_Father: {fileID: 2049822141}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4609123071435691437
 GameObject:
@@ -51420,13 +51419,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1996056552777820492}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2081210568560916164}
-  m_Father: {fileID: 2049822141}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!199 &7514439276985248372
 ParticleSystemRenderer:
@@ -61314,6 +61313,21 @@ MonoBehaviour:
   inJunction: 0
   Paused: 0
   SkipStepCount: 0
+  OnEnterJunction:
+    m_PersistentCalls:
+      m_Calls: []
+  OnJunctionSelection:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDestinationKnot:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotEnter:
+    m_PersistentCalls:
+      m_Calls: []
+  OnKnotLand:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &8100614385240447160
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -61326,9 +61340,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67b72f07c58cee94aaa5f4654efc4d61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uniqueId: 
-  decisionDelay: 1
-  moveDelay: 0.5
+  jumpDelay: 0.5
+  resultDelay: 0.5
+  startMoveDelay: 0.5
+  OnRollStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollJump:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollDisplay:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRollCancel:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMovementUpdate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnTurnEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  isRolling: 0
+  allowInput: 1
 --- !u!114 &8100614385240447161
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -61344,6 +61384,18 @@ MonoBehaviour:
   coins: 15
   stars: 0
   coinsBeforeChange: 0
+  OnInitialize:
+    m_PersistentCalls:
+      m_Calls: []
+  OnAnimation:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCoinsChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnStarsChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &8134966765768824650
 GameObject:
   m_ObjectHideFlags: 0
@@ -61425,11 +61477,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b263cbb4cef8084cb3da4889807aaea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpHeight: 1
+  characterModel: {fileID: 2003241122}
+  jumpPower: 1
   jumpDuration: 0.53
-  decisionParticle: {fileID: 0}
-  thoughtBubble: {fileID: 0}
-  thoughtBubbleDisplayTime: 1.5
 --- !u!114 &8581153443719783984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -61460,6 +61510,18 @@ MonoBehaviour:
   coins: 15
   stars: 0
   coinsBeforeChange: 0
+  OnInitialize:
+    m_PersistentCalls:
+      m_Calls: []
+  OnAnimation:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCoinsChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnStarsChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!199 &8691248965923324588
 ParticleSystemRenderer:
   serializedVersion: 6
@@ -61566,10 +61628,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e6d0ea1bf4f94f55a52f5afb1e9b412, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpHeight: 1
+  characterModel: {fileID: 1538335597}
+  jumpPower: 1
   jumpDuration: 0.53
-  victoryParticle: {fileID: 0}
-  coinParticle: {fileID: 0}
 --- !u!1 &8728297330720961146
 GameObject:
   m_ObjectHideFlags: 0
@@ -61868,7 +61929,8 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 913414087}
-  - {fileID: 329304572}
-  - {fileID: 2049822141}
+  - {fileID: 4561507577664416175}
+  - {fileID: 7402338356157654797}
+  - {fileID: 2050305983}
   - {fileID: 1443200215}
   - {fileID: 1728746071}

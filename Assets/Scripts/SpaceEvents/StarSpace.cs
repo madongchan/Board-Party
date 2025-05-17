@@ -31,11 +31,11 @@ public class StarSpace : SpaceEvent
         UIManager uiManager = BoardManager.GetInstance().GetUIManager();
         uiManager.starConfirmButton.onClick.AddListener(OnStarBuyClick);
         uiManager.starCancelButton.onClick.AddListener(OnStarCancel);
-
+        
         // 별 구매 결정 이벤트 리스너 등록
         BoardEvents.OnStarPurchaseDecision.AddListener(OnStarPurchaseDecision);
     }
-
+    
     /// <summary>
     /// 컴포넌트 제거 시 이벤트 리스너 해제
     /// </summary>
@@ -52,10 +52,10 @@ public class StarSpace : SpaceEvent
     {
         currentSplineKnotAnimator.Paused = false;
         FocusOnStar(false);
-
+        
         UIManager uiManager = BoardManager.GetInstance().GetUIManager();
         uiManager.FadeRollText(false);
-
+        
         // 이벤트 처리 완료 알림
         if (currentController != null)
         {
@@ -69,32 +69,32 @@ public class StarSpace : SpaceEvent
     private void OnStarBuyClick()
     {
         if (currentController == null) return;
-
-        // BaseStats playerStats = currentController.GetStats();
-        // if (playerStats.Coins < starCost)
-        //     return;
-
-        // StartCoroutine(StarSequence(playerStats));
+        
+        BaseStats playerStats = currentController.GetStats();
+        if (playerStats.Coins < starCost)
+            return;
+        
+        StartCoroutine(StarSequence(playerStats));
     }
-
+    
     /// <summary>
     /// 별 구매 결정 이벤트 처리
     /// </summary>
     private void OnStarPurchaseDecision(BaseController controller, bool decision)
     {
         if (controller != currentController) return;
-
+        
         // NPC가 별을 구매하기로 결정한 경우
-        // if (decision)
-        // {
-        //     BaseStats npcStats = controller.GetStats();
-        //     StartCoroutine(StarSequence(npcStats));
-        // }
-        // else
-        // {
-        //     // 구매하지 않기로 결정한 경우
-        //     OnStarCancel();
-        // }
+        if (decision)
+        {
+            BaseStats npcStats = controller.GetStats();
+            StartCoroutine(StarSequence(npcStats));
+        }
+        else
+        {
+            // 구매하지 않기로 결정한 경우
+            OnStarCancel();
+        }
     }
 
     /// <summary>
@@ -106,10 +106,10 @@ public class StarSpace : SpaceEvent
         stats.UpdateStats();
 
         cameraHandler.ZoomCamera(false);
-
+        
         UIManager uiManager = BoardManager.GetInstance().GetUIManager();
         uiManager.ShowStarPurchaseUI(false);
-
+        
         starTransform.DOScale(0, .1f);
         starTimelineDirector.Play();
         yield return new WaitUntil(() => starTimelineDirector.state == PlayState.Paused);
@@ -121,7 +121,7 @@ public class StarSpace : SpaceEvent
         starTransform.DOScale(1, .5f).SetEase(Ease.OutBack);
         currentSplineKnotAnimator.Paused = false;
         uiManager.FadeRollText(false);
-
+        
         // 이벤트 처리 완료 알림
         if (currentController != null)
         {
@@ -137,16 +137,16 @@ public class StarSpace : SpaceEvent
         base.StartEvent(animator);
         currentSplineKnotAnimator = animator;
         currentController = animator.GetComponent<BaseController>();
-
+        
         FocusOnStar(true);
-
+        
         UIManager uiManager = BoardManager.GetInstance().GetUIManager();
         uiManager.FadeRollText(true);
-
+        
         // NPC인 경우 자동으로 별 구매 결정 상태로 전환
         if (currentController is NPCController)
         {
-            //currentController.ChangeState<StarPurchaseDecisionState>();
+            currentController.ChangeState<StarPurchaseDecisionState>();
         }
         else
         {
@@ -161,10 +161,10 @@ public class StarSpace : SpaceEvent
     public void FocusOnStar(bool focus)
     {
         FindAnyObjectByType<CameraHandler>().ZoomCamera(focus);
-
+        
         UIManager uiManager = BoardManager.GetInstance().GetUIManager();
         uiManager.ShowStarPurchaseUI(focus);
-
+        
         if (focus)
             currentSplineKnotAnimator.transform.GetChild(0).DOLookAt(starTransform.position, .5f, AxisConstraint.Y);
         else

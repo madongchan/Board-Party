@@ -16,7 +16,7 @@ public class SplineKnotData : MonoBehaviour
 
 
     [Header("Event")]
-    [SerializeField] public SpaceEvent spaceEvent;
+    [SerializeField] private SpaceEvent spaceEvent;
 
     private void OnValidate()
     {

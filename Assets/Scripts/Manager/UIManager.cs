@@ -7,11 +7,13 @@ using DG.Tweening;
 using UnityEngine.EventSystems;
 
 /// <summary>
-/// UIManager 클래스 - 모든 UI 요소를 중앙에서 관리
-/// BoardEvents 기반 이벤트 시스템을 사용하여 이벤트를 처리합니다.
+/// 모든 UI 요소를 중앙에서 관리하는 매니저 클래스
 /// </summary>
 public class UIManager : MonoBehaviour
 {
+    // 싱글톤 인스턴스
+    public static UIManager Instance { get; private set; }
+
     [Header("Canvas References")]
     [SerializeField] private Canvas mainCanvas;
 
@@ -44,8 +46,8 @@ public class UIManager : MonoBehaviour
     [Header("Junction UI")]
     [SerializeField] private GameObject junctionUIPanel;
     [SerializeField] private TextMeshProUGUI junctionInstructionText;
-    
     [Header("NPC State UI")]
+    //[SerializeField] private GameObject NPCstateUIPanel;
     [SerializeField] private TextMeshProUGUI NPCstateText;
 
     [Header("Animation Parameters")]
@@ -61,18 +63,21 @@ public class UIManager : MonoBehaviour
     private bool isRolling = false;
     private bool isInJunction = false;
     private Vector3 rollTextOriginalScale;
-    
-    // BoardManager 참조
-    private BoardManager boardManager;
 
-    /// <summary>
-    /// 초기화
-    /// </summary>
-    public void Initialize()
+    private void Awake()
     {
-        // BoardManager 참조 획득
-        boardManager = BoardManager.GetInstance();
-        
+        // 싱글톤 설정
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         // 초기 상태 설정
         rollTextOriginalScale = rollValueText.transform.localScale;
 
@@ -84,115 +89,107 @@ public class UIManager : MonoBehaviour
         // 스타 구매 버튼 이벤트 등록
         starConfirmButton.onClick.AddListener(OnStarConfirmButtonClicked);
         starCancelButton.onClick.AddListener(OnStarCancelButtonClicked);
-        
-        // 이벤트 리스너 등록
-        RegisterEventListeners();
-        
-        Debug.Log("UIManager initialized");
+    }
+
+    private void Start()
+    {
+        // GameManager의 플레이어 변경 이벤트 구독
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnPlayerChanged.AddListener(SetCurrentPlayer);
+            SetCurrentPlayer(GameManager.Instance.GetCurrentPlayer());
+        }
     }
 
     /// <summary>
-    /// 컴포넌트 제거 시 이벤트 리스너 해제
+    /// 현재 플레이어 설정
     /// </summary>
-    private void OnDestroy()
+    public void SetCurrentPlayer(BaseController controller)
     {
-        // 스타 구매 버튼 이벤트 해제
-        starConfirmButton.onClick.RemoveListener(OnStarConfirmButtonClicked);
-        starCancelButton.onClick.RemoveListener(OnStarCancelButtonClicked);
-        
-        // 이벤트 리스너 해제
-        UnregisterEventListeners();
+        if (controller == null) return;
+
+        // 이전 이벤트 리스너 해제
+        UnregisterEvents();
+
+        // 새 컨트롤러 참조 설정
+        currentController = controller;
+        currentPlayerStats = controller.GetComponent<BaseStats>();
+        currentSplineKnotAnimator = controller.GetComponent<SplineKnotAnimate>();
+
+        // 이벤트 리스너 등록
+        RegisterEvents();
+
+        // UI 업데이트
+        UpdatePlayerUI();
+        UpdateStatsUI();
     }
 
     /// <summary>
     /// 이벤트 리스너 등록
     /// </summary>
-    private void RegisterEventListeners()
+    private void RegisterEvents()
     {
-        // 턴 관련 이벤트 리스너 등록
-        BoardEvents.OnTurnStart.AddListener(OnTurnStart);
-        
-        // 주사위 관련 이벤트 리스너 등록
-        BoardEvents.OnRollStart.AddListener(OnRollStart);
-        BoardEvents.OnRollDisplay.AddListener(OnRollDisplay);
-        BoardEvents.OnRollEnd.AddListener(OnRollEnd);
-        BoardEvents.OnRollCancel.AddListener(OnRollCancel);
-        
-        // 이동 관련 이벤트 리스너 등록
-        BoardEvents.OnMovementStart.AddListener(OnMovementStart);
-        
-        // 분기점 관련 이벤트 리스너 등록
-        BoardEvents.OnEnterJunction.AddListener(OnEnterJunction);
-        
-        // 스탯 관련 이벤트 리스너 등록
-        BoardEvents.OnCoinsChanged.AddListener(OnCoinsChanged);
-        BoardEvents.OnStarsChanged.AddListener(OnStarsChanged);
-        BoardEvents.OnStatsInitialized.AddListener(OnStatsInitialized);
-        
-        // NPC 상태 관련 이벤트 리스너 등록
-        BoardEvents.OnNPCStateChanged.AddListener(OnNPCStateChanged);
+        if (currentController != null)
+        {
+            currentController.OnRollStart.AddListener(OnRollStart);
+            currentController.OnRollDisplay.AddListener(OnRollDisplay);
+            currentController.OnRollEnd.AddListener(OnRollEnd);
+            currentController.OnRollCancel.AddListener(OnRollCancel);
+            currentController.OnMovementStart.AddListener(OnMovementStart);
+        }
+
+        if (currentSplineKnotAnimator != null)
+        {
+            currentSplineKnotAnimator.OnEnterJunction.AddListener(OnEnterJunction);
+        }
+
+        if (currentPlayerStats != null)
+        {
+            currentPlayerStats.OnCoinsChanged.AddListener(OnCoinsChanged);
+            currentPlayerStats.OnStarsChanged.AddListener(OnStarsChanged);
+            currentPlayerStats.OnInitialize.AddListener(UpdateStatsUI);
+        }
     }
 
     /// <summary>
     /// 이벤트 리스너 해제
     /// </summary>
-    private void UnregisterEventListeners()
+    private void UnregisterEvents()
     {
-        // 턴 관련 이벤트 리스너 해제
-        BoardEvents.OnTurnStart.RemoveListener(OnTurnStart);
-        
-        // 주사위 관련 이벤트 리스너 해제
-        BoardEvents.OnRollStart.RemoveListener(OnRollStart);
-        BoardEvents.OnRollDisplay.RemoveListener(OnRollDisplay);
-        BoardEvents.OnRollEnd.RemoveListener(OnRollEnd);
-        BoardEvents.OnRollCancel.RemoveListener(OnRollCancel);
-        
-        // 이동 관련 이벤트 리스너 해제
-        BoardEvents.OnMovementStart.RemoveListener(OnMovementStart);
-        
-        // 분기점 관련 이벤트 리스너 해제
-        BoardEvents.OnEnterJunction.RemoveListener(OnEnterJunction);
-        
-        // 스탯 관련 이벤트 리스너 해제
-        BoardEvents.OnCoinsChanged.RemoveListener(OnCoinsChanged);
-        BoardEvents.OnStarsChanged.RemoveListener(OnStarsChanged);
-        BoardEvents.OnStatsInitialized.RemoveListener(OnStatsInitialized);
-        
-        // NPC 상태 관련 이벤트 리스너 해제
-        BoardEvents.OnNPCStateChanged.RemoveListener(OnNPCStateChanged);
+        if (currentController != null)
+        {
+            currentController.OnRollStart.RemoveListener(OnRollStart);
+            currentController.OnRollDisplay.RemoveListener(OnRollDisplay);
+            currentController.OnRollEnd.RemoveListener(OnRollEnd);
+            currentController.OnRollCancel.RemoveListener(OnRollCancel);
+            currentController.OnMovementStart.RemoveListener(OnMovementStart);
+        }
+
+        if (currentSplineKnotAnimator != null)
+        {
+            currentSplineKnotAnimator.OnEnterJunction.RemoveListener(OnEnterJunction);
+        }
+
+        if (currentPlayerStats != null)
+        {
+            currentPlayerStats.OnCoinsChanged.RemoveListener(OnCoinsChanged);
+            currentPlayerStats.OnStarsChanged.RemoveListener(OnStarsChanged);
+            currentPlayerStats.OnInitialize.RemoveListener(UpdateStatsUI);
+        }
     }
 
     private void LateUpdate()
     {
         // 주사위 UI 위치 업데이트
-        if (isRolling && boardManager != null)
+        if (isRolling && VisualEffectsManager.Instance != null)
         {
-            VisualEffectsManager visualEffectsManager = boardManager.GetVisualEffectsManager();
-            if (visualEffectsManager != null)
+            Transform diceTransform = VisualEffectsManager.Instance.GetDiceTransform();
+            if (diceTransform != null && diceTransform.gameObject.activeSelf)
             {
-                Transform diceTransform = visualEffectsManager.GetDiceTransform();
-                if (diceTransform != null && diceTransform.gameObject.activeSelf)
-                {
-                    Vector3 screenPosition = Camera.main.WorldToScreenPoint(diceTransform.position);
-                    rollValueText.transform.position = screenPosition;
-                }
+                Vector3 screenPosition = Camera.main.WorldToScreenPoint(diceTransform.position);
+                rollValueText.transform.position = screenPosition;
             }
         }
-    }
-
-    /// <summary>
-    /// 턴 시작 이벤트 핸들러
-    /// </summary>
-    private void OnTurnStart(BaseController controller)
-    {
-        // 현재 컨트롤러 참조 설정
-        currentController = controller;
-        currentPlayerStats = controller.GetComponent<BaseStats>();
-        currentSplineKnotAnimator = controller.GetComponent<SplineKnotAnimate>();
-        
-        // UI 업데이트
-        UpdatePlayerUI();
-        UpdateStatsUI();
     }
 
     #region Roll UI Methods
@@ -200,10 +197,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 주사위 굴림 시작 이벤트 핸들러
     /// </summary>
-    private void OnRollStart(BaseController controller)
+    public void OnRollStart()
     {
-        if (controller != currentController) return;
-        
         isRolling = true;
         rollUIPanel.SetActive(true);
         rollValueText.gameObject.SetActive(false);
@@ -213,10 +208,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 주사위 결과 표시 이벤트 핸들러
     /// </summary>
-    private void OnRollDisplay(BaseController controller, int rollValue)
+    public void OnRollDisplay(int rollValue)
     {
-        if (controller != currentController) return;
-        
         if (rollValue <= 0)
         {
             rollValueText.gameObject.SetActive(false);
@@ -242,10 +235,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 주사위 굴림 종료 이벤트 핸들러
     /// </summary>
-    private void OnRollEnd(BaseController controller)
+    public void OnRollEnd()
     {
-        if (controller != currentController) return;
-        
         // 주사위 UI는 일정 시간 동안 표시 후 페이드 아웃
         StartCoroutine(FadeOutRollUI());
     }
@@ -253,10 +244,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 주사위 굴림 취소 이벤트 핸들러
     /// </summary>
-    private void OnRollCancel(BaseController controller)
+    public void OnRollCancel()
     {
-        if (controller != currentController) return;
-        
         isRolling = false;
         rollUIPanel.SetActive(false);
     }
@@ -279,10 +268,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 이동 시작 이벤트 핸들러
     /// </summary>
-    private void OnMovementStart(BaseController controller, bool started)
+    public void OnMovementStart(bool started)
     {
-        if (controller != currentController) return;
-        
         if (!started)
         {
             // 이동 종료 시 주사위 UI 비활성화
@@ -328,8 +315,8 @@ public class UIManager : MonoBehaviour
         // 별 구매 로직 실행
         if (currentController != null)
         {
-            // 별 구매 이벤트 발생
-            BoardEvents.OnStarPurchaseDecision.Invoke(currentController, true);
+            // 별 구매 이벤트 발생 (실제 구매 로직은 해당 컨트롤러에서 처리)
+            // 예: currentController.PurchaseStar();
 
             // UI 숨김
             ShowStarPurchaseUI(false);
@@ -341,12 +328,6 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void OnStarCancelButtonClicked()
     {
-        // 별 구매 취소 이벤트 발생
-        if (currentController != null)
-        {
-            BoardEvents.OnStarPurchaseDecision.Invoke(currentController, false);
-        }
-        
         // UI 숨김
         ShowStarPurchaseUI(false);
     }
@@ -354,16 +335,6 @@ public class UIManager : MonoBehaviour
     #endregion
 
     #region Stats UI Methods
-
-    /// <summary>
-    /// 스탯 초기화 이벤트 핸들러
-    /// </summary>
-    private void OnStatsInitialized(BaseController controller)
-    {
-        if (controller != currentController) return;
-        
-        UpdateStatsUI();
-    }
 
     /// <summary>
     /// 스탯 UI 업데이트
@@ -379,10 +350,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 코인 변경 이벤트 핸들러
     /// </summary>
-    private void OnCoinsChanged(BaseController controller, int amount)
+    public void OnCoinsChanged(int amount)
     {
-        if (controller != currentController) return;
-        
         // 현재 코인 수 표시
         coinsText.text = currentPlayerStats.Coins.ToString();
 
@@ -393,10 +362,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 별 변경 이벤트 핸들러
     /// </summary>
-    private void OnStarsChanged(BaseController controller, int amount)
+    public void OnStarsChanged(int amount)
     {
-        if (controller != currentController) return;
-        
         // 현재 별 수 표시
         starsText.text = currentPlayerStats.Stars.ToString();
 
@@ -469,10 +436,8 @@ public class UIManager : MonoBehaviour
     /// <summary>
     /// 분기점 진입 이벤트 핸들러
     /// </summary>
-    private void OnEnterJunction(BaseController controller, bool entered)
+    public void OnEnterJunction(bool entered)
     {
-        if (controller != currentController) return;
-        
         isInJunction = entered;
 
         if (entered)
@@ -498,23 +463,6 @@ public class UIManager : MonoBehaviour
     }
 
     #endregion
-    
-    #region NPC State UI Methods
-    
-    /// <summary>
-    /// NPC 상태 변경 이벤트 핸들러
-    /// </summary>
-    private void OnNPCStateChanged(BaseController controller, string state)
-    {
-        if (controller != currentController || !(controller is NPCController)) return;
-        
-        if (NPCstateText != null)
-        {
-            NPCstateText.text = state;
-        }
-    }
-    
-    #endregion
 
     #region Public Methods
 
@@ -526,6 +474,15 @@ public class UIManager : MonoBehaviour
         UpdatePlayerUI();
         UpdateStatsUI();
     }
+
+    /// <summary>
+    /// 미니게임 결과 UI 표시
+    /// </summary>
+    // public void ShowMinigameResults(List<KeyValuePair<BaseController, int>> results, MinigameData minigameData)
+    // {
+    //     // 미니게임 결과 UI 구현
+    //     // 이 메서드는 미니게임 시스템 구현 시 확장 필요
+    // }
 
     /// <summary>
     /// 화면 페이드 효과
@@ -544,6 +501,13 @@ public class UIManager : MonoBehaviour
         // 확인 대화상자 구현
         // 이 메서드는 중요한 결정을 내릴 때 사용
     }
-    
+
+    public void ShowNPCState(string state)
+    {
+        if (NPCstateText != null)
+        {
+            NPCstateText.text = state;
+        }
+    }
     #endregion
 }

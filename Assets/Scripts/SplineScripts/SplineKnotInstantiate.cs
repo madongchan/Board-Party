@@ -3,10 +3,6 @@ using UnityEngine.Splines;
 using UnityEditor;
 using System.Collections.Generic;
 
-/// <summary>
-/// SplineKnotInstantiate 클래스 - 스플라인 노트 생성 및 관리
-/// 스플라인 경로를 따라 노트 오브젝트를 생성하고 관리합니다.
-/// </summary>
 [ExecuteAlways]
 public class SplineKnotInstantiate : MonoBehaviour
 {
@@ -280,24 +276,6 @@ public class SplineKnotInstantiate : MonoBehaviour
         ResetDataAndObjects();
         UpdateSplineData();
         UpdateKnotPositions();
-    }
-
-    /// <summary>
-    /// 특정 스플라인 노트 인덱스에 해당하는 SpaceEvent를 반환합니다.
-    /// </summary>
-    /// <param name="knotIndex">스플라인 노트 인덱스</param>
-    /// <returns>해당 노트의 SpaceEvent, 없으면 null</returns>
-    public SpaceEvent GetEventAtKnot(SplineKnotIndex knotIndex)
-    {
-        if (knotIndex.Spline < 0 || knotIndex.Spline >= splineDatas.Count)
-            return null;
-            
-        if (knotIndex.Knot < 0 || knotIndex.Knot >= splineDatas[knotIndex.Spline].knots.Count)
-            return null;
-            
-        // 해당 노트에 연결된 이벤트 반환
-        SplineKnotData data = splineDatas[knotIndex.Spline].knots[knotIndex.Knot];
-        return data.spaceEvent;
     }
 
     [System.Serializable]

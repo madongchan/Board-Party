@@ -1,157 +1,83 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-/// <summary>
-/// NPCVisualHandler 클래스 - NPC 캐릭터의 시각적 효과 관리
-/// NPC 고유의 애니메이션과 시각적 피드백을 처리합니다.
-/// BoardEvents 기반 이벤트 시스템을 사용하여 이벤트를 처리합니다.
-/// </summary>
 public class NPCVisualHandler : BaseVisualHandler
 {
-    // NPC 고유 시각 효과 파라미터
-    [Header("NPC Visual Effects")]
-    [SerializeField] private ParticleSystem decisionParticle;
-    [SerializeField] private GameObject thoughtBubble;
-    
-    // 생각 버블 표시 시간
-    [SerializeField] private float thoughtBubbleDisplayTime = 1.5f;
-    
-    /// <summary>
-    /// 초기화
-    /// </summary>
-    public override void Initialize()
+    private NPCController npcController;
+    private NPCStats npcStats;
+
+    protected override void Start()
     {
-        base.Initialize();
+        // 기본 클래스의 Start 메서드 호출
+        base.Start();
         
-        // NPC 고유 이벤트 리스너 등록
-        RegisterNPCEventListeners();
-        
-        // 생각 버블 초기 상태 설정
-        if (thoughtBubble != null)
-            thoughtBubble.SetActive(false);
+        // NPC 특화 컴포넌트 참조 획득
+        npcController = GetComponentInParent<NPCController>();
+        npcStats = GetComponentInParent<NPCStats>();
     }
-    
-    /// <summary>
-    /// 컴포넌트 제거 시 이벤트 리스너 해제
-    /// </summary>
-    protected override void OnDestroy()
+
+    protected override void RegisterEventListeners()
     {
-        base.OnDestroy();
+        // 기본 이벤트 리스너 등록
+        base.RegisterEventListeners();
         
-        // NPC 고유 이벤트 리스너 해제
-        UnregisterNPCEventListeners();
-    }
-    
-    /// <summary>
-    /// NPC 고유 이벤트 리스너 등록
-    /// </summary>
-    private void RegisterNPCEventListeners()
-    {
-        // 코인 및 별 변경 이벤트 리스너 등록
-        BoardEvents.OnCoinsChanged.AddListener(OnCoinsChangedEvent);
-        BoardEvents.OnStarsChanged.AddListener(OnStarsChangedEvent);
-        
-        // 별 구매 결정 이벤트 리스너 등록
-        BoardEvents.OnStarPurchaseDecision.AddListener(OnStarPurchaseDecision);
-    }
-    
-    /// <summary>
-    /// NPC 고유 이벤트 리스너 해제
-    /// </summary>
-    private void UnregisterNPCEventListeners()
-    {
-        // 코인 및 별 변경 이벤트 리스너 해제
-        BoardEvents.OnCoinsChanged.RemoveListener(OnCoinsChangedEvent);
-        BoardEvents.OnStarsChanged.RemoveListener(OnStarsChangedEvent);
-        
-        // 별 구매 결정 이벤트 리스너 해제
-        BoardEvents.OnStarPurchaseDecision.RemoveListener(OnStarPurchaseDecision);
-    }
-    
-    /// <summary>
-    /// 코인 변경 시 처리
-    /// </summary>
-    private void OnCoinsChangedEvent(BaseController controller, int amount)
-    {
-        if (controller != baseController) return;
-        
-        if (amount > 0)
+        // NPC 특화 이벤트 리스너 등록
+        if (npcController != null)
         {
-            //PlayCelebrateAnimation();
-        }
-        else if (amount < 0)
-        {
-            //PlaySadAnimation();
+            // NPC 상태 변경 이벤트 리스너 등록
+            npcController.OnStateChanged += OnNPCStateChanged;
         }
     }
-    
-    /// <summary>
-    /// 별 변경 시 처리
-    /// </summary>
-    private void OnStarsChangedEvent(BaseController controller, int amount)
+
+    // NPC 상태 변경 이벤트 핸들러
+    private void OnNPCStateChanged(NPCState newState)
     {
-        if (controller != baseController) return;
-        
-        if (amount > 0 && decisionParticle != null)
+        // 상태에 따른 시각적 피드백
+        if (newState is IdleState)
         {
-            decisionParticle.Play();
-            //PlayCelebrateAnimation();
+            // 대기 상태 시각적 피드백
+        }
+        else if (newState is TurnStartState)
+        {
+            // 턴 시작 상태 시각적 피드백
+            PlayCelebrateAnimation();
+        }
+        else if (newState is RollingState)
+        {
+            // 주사위 굴림 상태 시각적 피드백
+        }
+        else if (newState is MovingState)
+        {
+            // 이동 상태 시각적 피드백
+            SetMovingAnimation(true);
+        }
+        else if (newState is JunctionDecisionState)
+        {
+            // 분기점 선택 상태 시각적 피드백
+        }
+        else if (newState is EventProcessingState)
+        {
+            // 이벤트 처리 상태 시각적 피드백
+        }
+        else if (newState is TurnEndState)
+        {
+            // 턴 종료 상태 시각적 피드백
+            SetMovingAnimation(false);
+        }
+        else if (newState is StarPurchaseDecisionState)
+        {
+            // 별 구매 결정 상태 시각적 피드백
         }
     }
-    
-    /// <summary>
-    /// 별 구매 결정 시 처리
-    /// </summary>
-    private void OnStarPurchaseDecision(BaseController controller, bool decision)
+
+    // NPC 특화 메서드 오버라이드
+    public override void PlayCelebrateAnimation()
     {
-        if (controller != baseController) return;
-        
-        // 결정에 따른 시각적 효과
-        if (decision)
-        {
-            if (decisionParticle != null)
-                decisionParticle.Play();
-                
-            //PlayCelebrateAnimation();
-        }
-        else
-        {
-            //PlaySadAnimation();
-        }
+        // NPC 특화 축하 애니메이션
+        base.PlayCelebrateAnimation();
     }
-    
-    /// <summary>
-    /// 생각 버블 표시
-    /// </summary>
-    public void ShowThoughtBubble()
+
+    // NPC 특화 메서드 추가
+    public void PlayThinkingAnimation()
     {
-        if (thoughtBubble != null)
-        {
-            thoughtBubble.SetActive(true);
-            StartCoroutine(HideThoughtBubbleAfterDelay());
-        }
-    }
-    
-    /// <summary>
-    /// 지연 후 생각 버블 숨기기
-    /// </summary>
-    private IEnumerator HideThoughtBubbleAfterDelay()
-    {
-        yield return new WaitForSeconds(thoughtBubbleDisplayTime);
-        
-        if (thoughtBubble != null)
-            thoughtBubble.SetActive(false);
-    }
-    
-    /// <summary>
-    /// 결정 이펙트 재생
-    /// </summary>
-    public void PlayDecisionEffect()
-    {
-        if (decisionParticle != null)
-            decisionParticle.Play();
-            
-        ShowThoughtBubble();
+        if (animator != null)
+            animator.SetTrigger("Thinking");
     }
 }

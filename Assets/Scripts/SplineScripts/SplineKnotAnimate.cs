@@ -4,11 +4,8 @@ using System.Linq;
 using Unity.Mathematics;
 using System.Collections.Generic;
 using System.Collections;
+using UnityEngine.Events;
 
-/// <summary>
-/// SplineKnotAnimate 클래스 - 스플라인 경로를 따라 캐릭터 이동 관리
-/// BoardEvents 기반 이벤트 시스템을 사용하여 이동, 분기점, 노트 관련 이벤트를 처리합니다.
-/// </summary>
 public class SplineKnotAnimate : MonoBehaviour
 {
     [SerializeField] private SplineContainer splineContainer;
@@ -38,17 +35,17 @@ public class SplineKnotAnimate : MonoBehaviour
     public bool Paused = false;
     [HideInInspector] public bool SkipStepCount = false;
 
-    // 컴포넌트 참조
-    private BaseController baseController;
+    // Removed resumeAfterJunction flag
 
-    /// <summary>
-    /// 컴포넌트 초기화
-    /// </summary>
-    public void Initialize()
+    [Header("Events")]
+    [HideInInspector] public UnityEvent<bool> OnEnterJunction;
+    [HideInInspector] public UnityEvent<int> OnJunctionSelection;
+    [HideInInspector] public UnityEvent<SplineKnotIndex> OnDestinationKnot;
+    [HideInInspector] public UnityEvent<SplineKnotIndex> OnKnotEnter;
+    [HideInInspector] public UnityEvent<SplineKnotIndex> OnKnotLand;
+
+    void Start()
     {
-        // 컴포넌트 참조 획득
-        baseController = GetComponent<BaseController>();
-
         if (splineContainer == null)
         {
             Debug.LogError("Spline Container not assigned!");
@@ -56,11 +53,10 @@ public class SplineKnotAnimate : MonoBehaviour
             return;
         }
 
-        // 초기 위치 설정
+        // Initialize position at first knot
         currentKnot = new SplineKnotIndex(0, 0);
         currentT = 0;
-        
-        // 스플라인 인덱스 유효성 검사
+        // Ensure spline index is valid before accessing
         if (currentKnot.Spline < splineContainer.Splines.Count)
         {
             Spline spline = splineContainer.Splines[currentKnot.Spline];
@@ -70,7 +66,7 @@ public class SplineKnotAnimate : MonoBehaviour
             }
             else
             {
-                // 단일 노트 스플라인 처리
+                // Handle single-knot spline case if necessary
                 nextKnot = currentKnot;
             }
         }
@@ -80,18 +76,50 @@ public class SplineKnotAnimate : MonoBehaviour
             enabled = false;
             return;
         }
+
+        // Register events with managers (with null checks)
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnEnterJunction.AddListener(VisualEffectsManager.Instance.OnEnterJunction);
+            OnJunctionSelection.AddListener(VisualEffectsManager.Instance.OnJunctionSelection);
+            OnKnotEnter.AddListener(VisualEffectsManager.Instance.OnKnotEnter);
+            OnKnotLand.AddListener(VisualEffectsManager.Instance.OnKnotLand);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnEnterJunction.AddListener(UIManager.Instance.OnEnterJunction);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Unregister events (with null checks)
+        if (VisualEffectsManager.Instance != null)
+        {
+            OnEnterJunction.RemoveListener(VisualEffectsManager.Instance.OnEnterJunction);
+            OnJunctionSelection.RemoveListener(VisualEffectsManager.Instance.OnJunctionSelection);
+            OnKnotEnter.RemoveListener(VisualEffectsManager.Instance.OnKnotEnter);
+            OnKnotLand.RemoveListener(VisualEffectsManager.Instance.OnKnotLand);
+        }
+
+        if (UIManager.Instance != null)
+        {
+            OnEnterJunction.RemoveListener(UIManager.Instance.OnEnterJunction);
+        }
     }
 
     private void Update()
     {
-        // 이동 및 회전 처리
+        // Only call MoveAndRotate if needed (e.g., if moving or interpolating)
+        // This check might be optional depending on performance needs
+        // if (isMoving || transform.position != (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, currentT))
+        // {
         MoveAndRotate();
+        // }
+        // Removed Update logic for restarting movement after junction
     }
 
-    /// <summary>
-    /// 지정된 스텝만큼 스플라인을 따라 이동 시작
-    /// </summary>
-    /// <param name="stepAmount">이동할 스텝 수</param>
     public void Animate(int stepAmount = 1)
     {
         if (isMoving)
@@ -102,24 +130,23 @@ public class SplineKnotAnimate : MonoBehaviour
         if (inJunction)
         {
             Debug.LogWarning("Animate called while in junction.");
-            return; // 분기점에서는 이동 시작 불가
+            return; // Don't start animating if waiting at a junction
         }
 
         remainingSteps = stepAmount;
         StartCoroutine(MoveAlongSpline());
     }
 
-    /// <summary>
-    /// 스플라인을 따라 이동하는 코루틴
-    /// </summary>
     IEnumerator MoveAlongSpline()
     {
+        // Removed junction check at the start
+
         if (Paused)
             yield return new WaitUntil(() => Paused == false);
 
-        isMoving = true; // 이동 시작
+        isMoving = true; // Start moving
 
-        // 스플라인 인덱스 유효성 검사
+        // Ensure spline index is valid
         if (currentKnot.Spline >= splineContainer.Splines.Count)
         {
             Debug.LogError($"Current spline index {currentKnot.Spline} is out of bounds!");
@@ -128,7 +155,7 @@ public class SplineKnotAnimate : MonoBehaviour
         }
         Spline spline = splineContainer.Splines[currentKnot.Spline];
 
-        // 다음 노트 계산, 닫힌 스플라인 처리
+        // Calculate next knot, handle closed splines correctly
         int nextKnotIndex = (currentKnot.Knot + 1);
         bool isLooping = false;
         if (nextKnotIndex >= spline.Knots.Count())
@@ -142,89 +169,71 @@ public class SplineKnotAnimate : MonoBehaviour
             {
                 Debug.LogWarning("Reached end of open spline.");
                 isMoving = false;
-                
-                // 마지막 노트에 착지 이벤트 발생
-                if (baseController != null)
-                {
-                    BoardEvents.OnKnotLand.Invoke(baseController, currentKnot);
-                }
+                OnKnotLand.Invoke(currentKnot); // Land at the last knot
                 yield break;
             }
         }
         nextKnot = new SplineKnotIndex(currentKnot.Spline, nextKnotIndex);
 
-        // 목표 T값 계산
+        // Calculate target T value
         currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
         float nextT = isLooping ? 1f : spline.ConvertIndexUnit(nextKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
 
-        // 다음 목적지 이벤트 발생
-        if (baseController != null)
-        {
-            BoardEvents.OnDestinationKnot.Invoke(baseController, nextKnot);
-        }
+        OnDestinationKnot.Invoke(nextKnot); // Event for next destination
 
-        // nextT를 향해 이동
+        // Move towards nextT
         while (currentT < nextT)
         {
-            // NaN 또는 무한대 값 검사
+            // Check for potential issues like NaN or infinite values
             float step = AdjustedMovementSpeed(spline) * Time.deltaTime;
             if (float.IsNaN(step) || float.IsInfinity(step) || step <= 0)
             {
                 Debug.LogError("Invalid movement step calculated. Breaking movement.");
                 isMoving = false;
-                yield break; // 무한 루프 방지를 위해 코루틴 종료
+                yield break; // Exit coroutine to prevent infinite loop
             }
             currentT = Mathf.MoveTowards(currentT, nextT, step);
             yield return null;
         }
 
-        // 노트에 도달 (currentT >= nextT)
+        // Reached the knot (currentT >= nextT)
         currentKnot = nextKnot;
-        if (isLooping) currentT = 0; // 닫힌 스플라인에서 루프 시 T 리셋
+        if (isLooping) currentT = 0; // Reset T if looped on closed spline
 
-        // 노트 진입 이벤트 발생
-        if (baseController != null)
-        {
-            BoardEvents.OnKnotEnter.Invoke(baseController, currentKnot);
-        }
+        OnKnotEnter.Invoke(currentKnot); // Event for entering the knot
 
-        // 연결 및 분기점 확인
+        // Check for connections and junctions
         splineContainer.KnotLinkCollection.TryGetKnotLinks(currentKnot, out connectedKnots);
 
-        if (IsJunctionKnot(currentKnot)) // 분기점 노트인지 확인
+        if (IsJunctionKnot(currentKnot)) // Check if the arrived knot is a junction
         {
             inJunction = true;
-            junctionIndex = 0; // 기본 선택
-            isMoving = false; // 이동 중지, 선택 대기
-            
-            // 분기점 UI/시각 효과 트리거
-            if (baseController != null)
-            {
-                BoardEvents.OnEnterJunction.Invoke(baseController, true);
-                BoardEvents.OnJunctionSelection.Invoke(baseController, junctionIndex);
-            }
-            // 코루틴 종료, 이동 재개는 ConfirmJunctionSelection에서 처리
+            junctionIndex = 0; // Default selection
+            isMoving = false; // Stop movement, wait for selection
+            OnEnterJunction.Invoke(true); // Trigger junction UI/visuals
+            OnJunctionSelection.Invoke(junctionIndex); // Update visuals for default selection
+            // Coroutine ends here, movement restart handled by ConfirmJunctionSelection
         }
-        else // 분기점이 아닌 노트
+        else // Not a junction knot
         {
-            // 해당되는 경우 스텝 감소
+            // Decrement steps if applicable
             if (!SkipStepCount)
                 remainingSteps--;
             else
                 SkipStepCount = false;
 
-            // 스플라인 간 전환 처리 (IsLastKnot 로직)
+            // Handle transitions between splines if necessary (IsLastKnot logic)
             if (IsLastKnot(currentKnot) && connectedKnots != null)
             {
                 bool foundNext = false;
                 foreach (SplineKnotIndex connKnot in connectedKnots)
                 {
-                    // 연결된 노트 유효성 검사
+                    // Ensure connected knot is valid
                     if (connKnot.Spline < splineContainer.Splines.Count && connKnot.Knot < splineContainer.Splines[connKnot.Spline].Knots.Count())
                     {
-                        if (!IsLastKnot(connKnot)) // 끝 노트가 아닌 연결된 노트 찾기
+                        if (!IsLastKnot(connKnot)) // Find a connected knot that isn't an end knot
                         {
-                            currentKnot = connKnot; // 새 스플라인/노트로 전환
+                            currentKnot = connKnot; // Switch to the new spline/knot
                             currentT = splineContainer.Splines[currentKnot.Spline].ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
                             foundNext = true;
                             break;
@@ -237,53 +246,39 @@ public class SplineKnotAnimate : MonoBehaviour
                 }
                 if (!foundNext)
                 {
-                    remainingSteps = 0; // 끝에 도달하고 유효한 연결이 없으면 강제 정지
+                    remainingSteps = 0; // Force stop if at end and no valid continuation found
                 }
             }
 
-            // 이동 계속 여부 확인
+            // Check if movement should continue
             if (remainingSteps > 0)
             {
-                // 분기점이 아니므로 즉시 이동 계속
+                // Continue moving immediately since it's not a junction
                 StartCoroutine(MoveAlongSpline());
             }
-            else // 남은 스텝 없음
+            else // No steps remaining
             {
                 isMoving = false;
-                
-                // 최종 노트 착지 이벤트 발생
-                if (baseController != null)
-                {
-                    BoardEvents.OnKnotLand.Invoke(baseController, currentKnot);
-                }
+                OnKnotLand.Invoke(currentKnot); // Landed on the final knot
             }
         }
     }
 
-    /// <summary>
-    /// 분기점 선택 확인 및 이동 재개
-    /// </summary>
+    // Centralized method to handle junction confirmation and movement restart
     public void ConfirmJunctionSelection()
     {
         if (!inJunction) return;
 
         inJunction = false;
-        
-        // 분기점 UI/시각 효과 숨김
-        if (baseController != null)
-        {
-            BoardEvents.OnEnterJunction.Invoke(baseController, false);
-        }
-        
-        // 선택된 경로 적용
-        SelectJunctionPath(junctionIndex);
+        OnEnterJunction.Invoke(false); // Hide junction UI/visuals
+        SelectJunctionPath(junctionIndex); // Apply the selected path (updates currentKnot, nextKnot, currentT)
 
-        // 이동 재개 여부 확인
+        // Check if movement should resume
         if (remainingSteps > 0)
         {
-            if (!isMoving) // 이미 이동 중이 아닌지 확인
+            if (!isMoving) // Ensure we are not somehow already moving
             {
-                // 시스템 업데이트를 위한 짧은 지연 후 이동 재개
+                // Add a small delay before restarting movement to allow systems to update
                 StartCoroutine(ResumeMoveAfterDelay(0.05f));
             }
             else
@@ -291,33 +286,23 @@ public class SplineKnotAnimate : MonoBehaviour
                 Debug.LogWarning("ConfirmJunctionSelection called but already moving?");
             }
         }
-        else // 분기점 직후 남은 스텝 없음
+        else // No steps remaining after junction (e.g., landed exactly on junction)
         {
             isMoving = false;
-            
-            // 최종 노트 착지 이벤트 발생
-            if (baseController != null)
-            {
-                BoardEvents.OnKnotLand.Invoke(baseController, currentKnot);
-            }
+            OnKnotLand.Invoke(currentKnot);
         }
     }
 
-    /// <summary>
-    /// 지연 후 이동 재개 코루틴
-    /// </summary>
     private IEnumerator ResumeMoveAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        if (!isMoving && remainingSteps > 0) // 상태 재확인
+        if (!isMoving && remainingSteps > 0) // Double check state before starting
         {
-            StartCoroutine(MoveAlongSpline()); // 이동 재개
+            StartCoroutine(MoveAlongSpline()); // Resume movement
         }
     }
 
-    /// <summary>
-    /// 분기점 경로 선택 및 업데이트
-    /// </summary>
+    // SelectJunctionPath: Updates currentKnot, nextKnot, currentT based on index
     public void SelectJunctionPath(int index)
     {
         if (walkableKnots == null || walkableKnots.Count == 0)
@@ -328,102 +313,95 @@ public class SplineKnotAnimate : MonoBehaviour
         if (index < 0 || index >= walkableKnots.Count)
         {
             Debug.LogError($"Invalid junction index {index} selected. Clamping to 0.");
-            index = 0; // 유효한 인덱스로 제한
+            index = 0; // Clamp to valid index
         }
 
         SplineKnotIndex selectedKnot = walkableKnots[index];
 
-        // 선택된 노트 인덱스 유효성 검사
+        // Validate selected knot index before using
         if (selectedKnot.Spline >= splineContainer.Splines.Count || selectedKnot.Knot >= splineContainer.Splines[selectedKnot.Spline].Knots.Count())
         {
             Debug.LogError($"Selected walkable knot {selectedKnot} is invalid!");
             return;
         }
 
-        currentKnot = selectedKnot; // 현재 노트를 선택된 경로의 시작으로 업데이트
+        currentKnot = selectedKnot; // Update current knot to the start of the selected path
 
-        // 새 스플라인/노트 기반으로 nextKnot 및 currentT 업데이트
+        // Update nextKnot and currentT based on the new spline/knot
         Spline spline = splineContainer.Splines[currentKnot.Spline];
         int nextKnotIndex = (currentKnot.Knot + 1);
+        bool isLooping = false;
         if (nextKnotIndex >= spline.Knots.Count())
         {
             if (spline.Closed)
             {
                 nextKnotIndex = 0;
+                isLooping = true;
             }
             else
             {
                 Debug.LogWarning("Selected path leads immediately to the end of an open spline.");
-                // 끝이면 선택된 노트에 착지
+                // Land at the selected knot if it's the end
                 nextKnot = currentKnot;
                 currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
                 walkableKnots.Clear();
+                // Consider landing immediately if remainingSteps was 1?
+                // For now, let ConfirmJunctionSelection handle landing if remainingSteps is 0.
                 return;
             }
         }
         nextKnot = new SplineKnotIndex(currentKnot.Spline, nextKnotIndex);
         currentT = spline.ConvertIndexUnit(currentKnot.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
 
-        walkableKnots.Clear(); // 선택 후 옵션 정리
+        walkableKnots.Clear(); // Clear options after selection
     }
 
-    /// <summary>
-    /// 분기점 선택 인덱스 변경
-    /// </summary>
+    // AddToJunctionIndex: Updates selection index and invokes event
     public void AddToJunctionIndex(int amount)
     {
         if (!inJunction || walkableKnots == null || walkableKnots.Count == 0)
             return;
         junctionIndex = (int)Mathf.Repeat(junctionIndex + amount, walkableKnots.Count);
-        
-        // 분기점 선택 이벤트 발생
-        if (baseController != null)
-        {
-            BoardEvents.OnJunctionSelection.Invoke(baseController, junctionIndex);
-        }
+        OnJunctionSelection.Invoke(junctionIndex);
     }
 
-    /// <summary>
-    /// 분기점 경로 위치 계산 (시각 효과용)
-    /// </summary>
+    // GetJunctionPathPosition: Calculates position for visuals
     public Vector3 GetJunctionPathPosition(int index)
     {
         if (walkableKnots == null || walkableKnots.Count <= index || index < 0)
-            return transform.position; // 유효하지 않으면 현재 위치 반환
+            return transform.position; // Return current position if invalid
 
         SplineKnotIndex walkableKnotIndex = walkableKnots[index];
 
-        // 인덱스 유효성 검사
+        // Validate index
         if (walkableKnotIndex.Spline >= splineContainer.Splines.Count)
             return transform.position;
         Spline walkableSpline = splineContainer.Splines[walkableKnotIndex.Spline];
         if (walkableKnotIndex.Knot >= walkableSpline.Knots.Count())
             return transform.position;
 
-        // 선택된 경로의 *다음* 노트 위치 (방향용)
+        // Get position of the *next* knot on the selected path for direction
         int nextWalkableKnotNum = (walkableKnotIndex.Knot + 1);
         if (nextWalkableKnotNum >= walkableSpline.Knots.Count())
         {
             if (walkableSpline.Closed)
                 nextWalkableKnotNum = 0;
             else
-                // 경로가 즉시 끝나면 현재 위치에서 노트 자체를 향해 지정
+                // If path ends immediately, point towards the knot itself from current pos?
                 return (Vector3)splineContainer.EvaluatePosition(walkableKnotIndex.Spline, splineContainer.Splines[walkableKnotIndex.Spline].ConvertIndexUnit(walkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized));
         }
 
         SplineKnotIndex nextWalkableKnotIndex = new SplineKnotIndex(walkableKnotIndex.Spline, nextWalkableKnotNum);
-        // 더 나은 방향을 위해 경로를 따라 약간 앞쪽 위치 평가
+        // Evaluate position slightly along the path for better direction
         float targetT = walkableSpline.ConvertIndexUnit(walkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
         float nextTargetT = walkableSpline.ConvertIndexUnit(nextWalkableKnotIndex.Knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-        if (nextTargetT < targetT) nextTargetT = 1f; // 루프 랩 처리
-        float sampleT = Mathf.Lerp(targetT, nextTargetT, 0.1f); // 세그먼트의 10% 지점 샘플링
+        if (nextTargetT < targetT) nextTargetT = 1f; // Handle loop wrap
+        float sampleT = Mathf.Lerp(targetT, nextTargetT, 0.1f); // Sample 10% along the segment
 
         return (Vector3)splineContainer.EvaluatePosition(walkableKnotIndex.Spline, sampleT);
     }
 
-    /// <summary>
-    /// 노트가 분기점인지 확인
-    /// </summary>
+    // IsJunctionKnot: Determines if a knot is a junction
     bool IsJunctionKnot(SplineKnotIndex knotIndex)
     {
         walkableKnots.Clear();
@@ -432,154 +410,96 @@ public class SplineKnotAnimate : MonoBehaviour
             return false;
 
         int divergingPaths = 0;
-        foreach (SplineKnotIndex connectedKnot in connectedKnots)
-        {
-            // 연결된 노트 유효성 검사
-            if (connectedKnot.Spline < splineContainer.Splines.Count && 
-                connectedKnot.Knot < splineContainer.Splines[connectedKnot.Spline].Knots.Count())
-            {
-                // 현재 노트가 끝 노트이고 연결된 노트가 시작 노트인 경우
-                if (IsLastKnot(knotIndex) && IsFirstKnot(connectedKnot))
-                {
-                    walkableKnots.Add(connectedKnot);
-                    divergingPaths++;
-                }
-                // 현재 노트가 시작 노트이고 연결된 노트가 끝 노트인 경우
-                else if (IsFirstKnot(knotIndex) && IsLastKnot(connectedKnot))
-                {
-                    walkableKnots.Add(connectedKnot);
-                    divergingPaths++;
-                }
-            }
-        }
 
-        // 현재 스플라인의 다음 노트도 경로 옵션에 추가
-        if (!IsLastKnot(knotIndex))
+        // Check each connected spline
+        foreach (SplineKnotIndex connection in connectedKnots)
         {
-            int nextKnotIndex = knotIndex.Knot + 1;
-            if (nextKnotIndex < splineContainer.Splines[knotIndex.Spline].Knots.Count())
+            // Validate connection index
+            if (connection.Spline >= splineContainer.Splines.Count)
             {
-                SplineKnotIndex nextKnot = new SplineKnotIndex(knotIndex.Spline, nextKnotIndex);
-                walkableKnots.Add(nextKnot);
+                Debug.LogWarning($"Invalid connection spline index {connection.Spline}");
+                continue;
+            }
+            var spline = splineContainer.Splines[connection.Spline];
+            if (connection.Knot >= spline.Knots.Count())
+            {
+                Debug.LogWarning($"Invalid connection knot index {connection.Knot} on spline {connection.Spline}");
+                continue;
+            }
+
+            if (!IsLastKnot(connection))
+            {
                 divergingPaths++;
+                walkableKnots.Add(connection);
             }
         }
 
-        // 현재 스플라인의 이전 노트도 경로 옵션에 추가 (닫힌 스플라인 또는 첫 노트가 아닌 경우)
-        Spline currentSpline = splineContainer.Splines[knotIndex.Spline];
-        if (currentSpline.Closed || knotIndex.Knot > 0)
+        // Sort walkableKnots by spline index number (optional, but consistent)
+        walkableKnots.Sort((knot1, knot2) => knot1.Spline.CompareTo(knot2.Spline));
+
+        if (divergingPaths <= 1)
         {
-            int prevKnotIndex = knotIndex.Knot - 1;
-            if (prevKnotIndex < 0) prevKnotIndex = currentSpline.Knots.Count() - 1; // 닫힌 스플라인에서 랩
-            
-            if (prevKnotIndex >= 0 && prevKnotIndex < currentSpline.Knots.Count())
-            {
-                SplineKnotIndex prevKnot = new SplineKnotIndex(knotIndex.Spline, prevKnotIndex);
-                
-                // 이미 추가된 노트와 중복되지 않는지 확인
-                bool alreadyAdded = false;
-                foreach (SplineKnotIndex knot in walkableKnots)
-                {
-                    if (knot.Spline == prevKnot.Spline && knot.Knot == prevKnot.Knot)
-                    {
-                        alreadyAdded = true;
-                        break;
-                    }
-                }
-                
-                if (!alreadyAdded)
-                {
-                    walkableKnots.Add(prevKnot);
-                    divergingPaths++;
-                }
-            }
+            walkableKnots.Clear(); // Not a junction if 0 or 1 path forward
+            return false;
         }
 
-        // 2개 이상의 경로 옵션이 있으면 분기점으로 간주
-        return divergingPaths >= 2;
+        return true; // It's a junction if more than one path forward
     }
 
-    /// <summary>
-    /// 노트가 스플라인의 첫 번째 노트인지 확인
-    /// </summary>
-    bool IsFirstKnot(SplineKnotIndex knotIndex)
-    {
-        return knotIndex.Knot == 0;
-    }
-
-    /// <summary>
-    /// 노트가 스플라인의 마지막 노트인지 확인
-    /// </summary>
+    // IsLastKnot: Checks if a knot is the last on an open spline
     bool IsLastKnot(SplineKnotIndex knotIndex)
     {
+        // Validate index
         if (knotIndex.Spline >= splineContainer.Splines.Count)
-            return false;
-            
-        Spline spline = splineContainer.Splines[knotIndex.Spline];
-        return knotIndex.Knot == spline.Knots.Count() - 1;
+            return true; // Treat invalid index as end
+        var spline = splineContainer.Splines[knotIndex.Spline];
+        if (knotIndex.Knot >= spline.Knots.Count())
+            return true; // Treat invalid index as end
+
+        return knotIndex.Knot >= spline.Knots.Count() - 1 && !spline.Closed;
     }
 
-    /// <summary>
-    /// 스플라인 길이에 따른 이동 속도 조정
-    /// </summary>
+    // AdjustedMovementSpeed: Calculates speed relative to spline length
     float AdjustedMovementSpeed(Spline spline)
     {
-        if (spline == null) return moveSpeed;
-        
-        // 스플라인 길이에 따라 속도 조정
+        if (spline == null) return 0;
         float splineLength = spline.GetLength();
-        if (splineLength <= 0) return moveSpeed;
-        
-        // 기본 속도를 스플라인 길이로 정규화
+        // Avoid division by zero or very small lengths
+        if (splineLength < 0.001f) return moveSpeed; // Return base speed or a large number
         return moveSpeed / splineLength;
     }
 
-    /// <summary>
-    /// 캐릭터 이동 및 회전 처리
-    /// </summary>
+    // MoveAndRotate: Updates transform position and rotation based on currentT
     void MoveAndRotate()
     {
-        if (splineContainer == null) return;
-        
-        // 현재 스플라인 인덱스 유효성 검사
-        if (currentKnot.Spline >= splineContainer.Splines.Count) return;
-        
-        // 현재 위치 계산
+        if (splineContainer == null || currentKnot.Spline >= splineContainer.Splines.Count)
+            return;
+
+        // Lerp position for smoothness
+        float movementBlend = 1f - Mathf.Pow(0.5f, Time.deltaTime * movementLerp);
         Vector3 targetPosition = (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, currentT);
-        
-        // 위치 오프셋 적용 (필요시)
-        // targetPosition += positionOffset;
-        
-        // 부드러운 이동
-        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * movementLerp);
-        
-        // 이동 방향 계산
-        if (isMoving)
+        transform.position = Vector3.Lerp(transform.position, targetPosition, movementBlend);
+
+        // Lerp rotation for smoothness
+        splineContainer.Splines[currentKnot.Spline].Evaluate(currentT, out float3 position, out float3 direction, out float3 up);
+        Vector3 worldDirection = splineContainer.transform.TransformDirection(direction);
+
+        if (worldDirection.sqrMagnitude > 0.0001f) // Check for valid direction
         {
-            // 다음 위치 계산
-            float nextT = Mathf.Min(currentT + 0.01f, 1f);
-            Vector3 nextPosition = (Vector3)splineContainer.EvaluatePosition(currentKnot.Spline, nextT);
-            
-            // 이동 방향 계산
-            Vector3 moveDirection = nextPosition - transform.position;
-            
-            // 수평 방향만 고려
-            moveDirection.y = 0;
-            
-            // 방향이 유효한 경우에만 회전
-            if (moveDirection.sqrMagnitude > 0.001f)
-            {
-                // 목표 회전 계산
-                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-                
-                // 부드러운 회전
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationLerp);
-            }
+            Quaternion targetRotation = Quaternion.LookRotation(worldDirection, splineContainer.transform.TransformDirection(up));
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationLerp * Time.deltaTime);
         }
     }
 
-    /// <summary>
-    /// 현재 노트 인덱스 반환
-    /// </summary>
-    public SplineKnotIndex CurrentKnot => currentKnot;
+    // OnDrawGizmos: For debugging junction path selection
+    private void OnDrawGizmos()
+    {
+        if (inJunction && splineContainer != null)
+        {
+            Gizmos.color = Color.red;
+            Vector3 targetVisPos = GetJunctionPathPosition(junctionIndex);
+            // Draw sphere slightly above ground
+            Gizmos.DrawSphere(targetVisPos + Vector3.up * 0.1f, 0.5f);
+        }
+    }
 }
