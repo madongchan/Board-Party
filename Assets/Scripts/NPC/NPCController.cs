@@ -1,105 +1,146 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Splines;
 
 /// <summary>
-/// NPCController 클래스 - NPC 플레이어 제어
-/// AI 의사결정 로직과 NPC 동작을 구현합니다.
+/// NPCController 클래스 - NPC 캐릭터 제어
+/// AI 로직을 통해 NPC 캐릭터를 자동으로 제어합니다.
 /// </summary>
 public class NPCController : BaseController
 {
+    // AI 설정
+    [SerializeField] private float decisionDelay = 1.0f;
+    [SerializeField] private float moveDelay = 0.5f;
+    
+    // 코루틴 참조
+    private Coroutine turnCoroutine;
+    
     /// <summary>
     /// 초기화
     /// </summary>
     public override void Initialize()
     {
         base.Initialize();
+        
+        // 초기 상태 설정
+        ChangeState<IdleState>();
     }
-
+    
     /// <summary>
-    /// NPC 주사위 굴림 시작
+    /// 상태 초기화
     /// </summary>
-    public override void StartRoll()
+    protected override void InitializeStates()
     {
-        PrepareToRoll();
+        // 상태 생성 및 등록
+        states[typeof(IdleState)] = new IdleState(this);
+        states[typeof(TurnStartState)] = new TurnStartState(this);
+        states[typeof(RollingState)] = new RollingState(this);
+        states[typeof(MovingState)] = new MovingState(this);
+        states[typeof(EventProcessingState)] = new EventProcessingState(this);
+        states[typeof(TurnEndState)] = new TurnEndState(this);
     }
-
+    
     /// <summary>
-    /// 주사위 굴림 확정
+    /// 턴 시작 이벤트 처리
     /// </summary>
-    public void ConfirmRoll()
+    protected override void OnTurnStart(BaseController controller)
     {
-        StartCoroutine(RollSequence());
+        if (controller != this) return;
+        
+        // NPC 턴 시작
+        ChangeState<TurnStartState>();
+        
+        // 자동 턴 진행 시작
+        turnCoroutine = StartCoroutine(ProcessTurn());
     }
-
+    
     /// <summary>
-    /// 분기점 경로 선택
+    /// 턴 종료 이벤트 처리
     /// </summary>
-    public void SelectJunctionPath()
+    protected override void OnTurnEnd(BaseController controller)
     {
-        if (splineKnotAnimator.inJunction && splineKnotAnimator.walkableKnots.Count > 0)
+        if (controller != this) return;
+        
+        // NPC 턴 종료
+        ChangeState<IdleState>();
+        
+        // 진행 중인 코루틴 정지
+        if (turnCoroutine != null)
         {
-            // 분기점 선택 로직 개선
-            int pathIndex = DecideJunctionPath(splineKnotAnimator.walkableKnots);
-
-            // 선택한 경로 인덱스 설정
-            splineKnotAnimator.junctionIndex = pathIndex;
-
-            // 선택 이벤트 발생 (UI 업데이트 등을 위해)
-            splineKnotAnimator.OnJunctionSelection.Invoke(pathIndex);
-
-            // 약간의 지연 후 선택 확정 (시각적 효과를 위해)
-            StartCoroutine(ConfirmJunctionAfterDelay(0.5f));
+            StopCoroutine(turnCoroutine);
+            turnCoroutine = null;
         }
     }
-
+    
     /// <summary>
-    /// 지연 후 분기점 선택 확정
+    /// 자동 턴 진행 코루틴
     /// </summary>
-    private IEnumerator ConfirmJunctionAfterDelay(float delay)
+    private IEnumerator ProcessTurn()
     {
-        yield return new WaitForSeconds(delay);
-        ConfirmJunctionSelection();
-    }
-
-    /// <summary>
-    /// 분기점 경로 선택 로직
-    /// </summary>
-    public int DecideJunctionPath(List<SplineKnotIndex> options)
-    {
-        if (options.Count == 0) return 0;
-
-        // 기본 랜덤 선택 로직
-        int randomIndex = Random.Range(0, options.Count);
-
-        // 여기에 더 복잡한 의사결정 로직 추가 가능
-        // 예: 별이 있는 방향 우선 선택, 더 짧은 경로 선택 등
-
-        return randomIndex;
-    }
-
-    /// <summary>
-    /// 별 구매 결정
-    /// </summary>
-    public bool DecideStarPurchase()
-    {
-        BaseStats npcStats = GetStats();
-
-        // 기본 로직: 코인이 충분하면 구매
-        if (npcStats.Coins >= 20)  // 별 가격이 20코인이라고 가정
+        // 잠시 대기
+        yield return new WaitForSeconds(decisionDelay);
+        
+        // 주사위 굴림
+        RollDice();
+        
+        // 주사위 결과 대기
+        yield return new WaitForSeconds(decisionDelay);
+        
+        // 이동 시작
+        ChangeState<MovingState>();
+        
+        // 이동 완료 대기
+        while (splineKnotAnimate != null && (splineKnotAnimate.isMoving || splineKnotAnimate.inJunction))
         {
-            return true;
+            // 분기점에서 결정
+            if (splineKnotAnimate.inJunction)
+            {
+                yield return new WaitForSeconds(moveDelay);
+                
+                // 랜덤 방향 선택
+                int randomDirection = Random.Range(0, splineKnotAnimate.walkableKnots.Count);
+                splineKnotAnimate.junctionIndex = randomDirection;
+                
+                yield return new WaitForSeconds(moveDelay);
+                
+                // 선택 확정
+                splineKnotAnimate.ConfirmJunctionSelection();
+            }
+            
+            yield return null;
         }
-
-        return false;
+        
+        // 이벤트 처리 대기
+        yield return new WaitForSeconds(decisionDelay);
+        
+        // 턴 종료
+        BoardEvents.OnTurnEnd.Invoke(this);
     }
-
+    
     /// <summary>
-    /// 이벤트 처리 완료
+    /// 이벤트 시작 처리
     /// </summary>
-    public void EventProcessingComplete()
+    protected override void OnEventStarted(BaseController controller, SpaceEvent spaceEvent)
     {
-        ChangeState<TurnEndState>();
+        if (controller != this) return;
+        
+        // 별 구매 이벤트 처리
+        if (spaceEvent is StarSpace)
+        {
+            // NPC는 코인이 충분하면 자동으로 구매
+            //int starPrice = BoardManager.GetInstance().GetStarPrice();
+            //bool canBuy = stats != null && stats.Coins >= starPrice;
+            
+            //StartCoroutine(DelayedStarPurchase(canBuy));
+        }
+    }
+    
+    /// <summary>
+    /// 지연된 별 구매 결정
+    /// </summary>
+    private IEnumerator DelayedStarPurchase(bool purchase)
+    {
+        yield return new WaitForSeconds(decisionDelay);
+        MakeStarPurchaseDecision(purchase);
     }
 }
