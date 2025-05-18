@@ -89,7 +89,7 @@ public class NPCController : BaseController
     {
         OnRollJump.Invoke(); // 주사위 점프 이벤트를 호출합니다.
 
-        roll = Random.Range(6, 10); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
+        roll = Random.Range(1, 13); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
 
         yield return new WaitForSeconds(jumpDelay); // 점프 딜레이 시간만큼 대기합니다.
 

@@ -35,6 +35,21 @@ public abstract class BaseStats : MonoBehaviour
         UpdateStats();
     }
 
+    // 코인 직접 설정 메서드 (데이터 복원용)
+    public virtual void SetCoins(int value)
+    {
+        coins = value;
+        coinsBeforeChange = value;
+        OnInitialize.Invoke();
+    }
+
+    // 별 직접 설정 메서드 (데이터 복원용)
+    public virtual void SetStars(int value)
+    {
+        stars = value;
+        OnInitialize.Invoke();
+    }
+
     public virtual void CoinAnimation(int value)
     {
         coinsBeforeChange += value;

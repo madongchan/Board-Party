@@ -110,7 +110,6 @@ public abstract class BaseController : MonoBehaviour
             data.Land(stats);
             OnMovementStart.Invoke(false);
 
-            // 문제 3 수정: 카메라 블렌딩 완료 후 턴 종료 처리
             // 카메라 핸들러가 있는 경우 카메라 줌 효과 트리거
             if (CameraHandler.Instance != null)
             {
@@ -131,11 +130,9 @@ public abstract class BaseController : MonoBehaviour
             // 턴 종료 이벤트 발생
             OnTurnEnd.Invoke();
 
-            GameManager.Instance.EndCurrentTurn();
-            // 플레이어 컨트롤러가 아닐 경우에만 자동으로 턴 종료
-            // 플레이어는 명시적인 액션이나 이벤트로 턴 종료
-            if (!(this is PlayerController))
+            if (this is PlayerController)
             {
+                GameManager.Instance.EndCurrentTurn();
             }
         }
     }
@@ -163,7 +160,7 @@ public abstract class BaseController : MonoBehaviour
         allowInput = false; // 입력을 비활성화합니다.
         OnRollJump.Invoke(); // 주사위 점프 이벤트를 호출합니다.
 
-        roll = Random.Range(8, 10); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
+        roll = Random.Range(1, 3); // 1에서 9 사이의 랜덤 숫자를 생성하여 주사위 결과로 설정합니다.
 
         yield return new WaitForSeconds(jumpDelay); // 점프 딜레이 시간만큼 대기합니다.
 
@@ -203,8 +200,8 @@ public abstract class BaseController : MonoBehaviour
         if (splineKnotAnimator != null && splineKnotAnimator.inJunction)
         {
             // 직접 SplineKnotAnimate의 ConfirmJunctionSelection 메서드 호출
-        splineKnotAnimator.ConfirmJunctionSelection();
-        // 기존 코드는 제거 (splineKnotAnimator.inJunction = false;)
+            splineKnotAnimator.ConfirmJunctionSelection();
+            // 기존 코드는 제거 (splineKnotAnimator.inJunction = false;)
         }
     }
 
@@ -228,15 +225,6 @@ public abstract class BaseController : MonoBehaviour
 
         // GameManager를 통한 턴 관리
         GameManager.Instance.EndCurrentTurn();
-    }
-
-    // 문제 3 수정: 플레이어 턴 종료 메서드 추가 (UI 버튼에서 호출 가능)
-    public virtual void EndTurn()
-    {
-        if (this is PlayerController && !splineKnotAnimator.isMoving)
-        {
-            GameManager.Instance.EndCurrentTurn();
-        }
     }
 
     public virtual BaseStats GetStats()
