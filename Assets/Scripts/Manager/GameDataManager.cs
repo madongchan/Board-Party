@@ -145,15 +145,13 @@ public class GameDataManager : MonoBehaviour
     /// <summary>
     /// 미니게임 결과를 반영하는 메서드
     /// </summary>
-    public void ApplyMinigameResults(KeyValuePair<string, int> playerResults, List<KeyValuePair<string, int>> npcResults)
+    public void ApplyMinigameResults(string playerName, int coinsEarned, List<KeyValuePair<string, int>> npcResults)
     {
         // 플레이어 결과 반영
-        string playerName = playerResults.Key;
-        int playerCoinsEarned = playerResults.Value;
         if (PlayerPrefs.HasKey(COINS_KEY_PREFIX + playerName))
         {
             int currentCoins = PlayerPrefs.GetInt(COINS_KEY_PREFIX + playerName);
-            PlayerPrefs.SetInt(COINS_KEY_PREFIX + playerName, currentCoins + playerCoinsEarned);
+            PlayerPrefs.SetInt(COINS_KEY_PREFIX + playerName, currentCoins + coinsEarned);
         }
 
         // NPC 결과 반영
@@ -161,7 +159,7 @@ public class GameDataManager : MonoBehaviour
         {
             string npcName = npcResult.Key;
             int npcCoinsEarned = npcResult.Value;
-
+            
             if (PlayerPrefs.HasKey(COINS_KEY_PREFIX + npcName))
             {
                 int currentCoins = PlayerPrefs.GetInt(COINS_KEY_PREFIX + npcName);

@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 3
   tags:
   - NPC
+  - Wire
+  - Agent
+  - Wind
   layers:
   - Default
   - TransparentFX
