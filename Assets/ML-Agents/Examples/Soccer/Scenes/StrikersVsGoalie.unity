@@ -405,6 +405,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: StrikersVsPlayerField
       objectReference: {fileID: 0}
+    - target: {fileID: 760648690385344391, guid: f46c640f3edc180428a43d4471cac0bf, type: 3}
+      propertyPath: m_Name
+      value: Striker1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2026450607044458934, guid: f46c640f3edc180428a43d4471cac0bf, type: 3}
+      propertyPath: maxSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3548824341111825429, guid: f46c640f3edc180428a43d4471cac0bf, type: 3}
+      propertyPath: m_Name
+      value: Striker2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6488149369609035715, guid: f46c640f3edc180428a43d4471cac0bf, type: 3}
+      propertyPath: m_Name
+      value: Goalie
+      objectReference: {fileID: 0}
     - target: {fileID: 6488149369609035715, guid: f46c640f3edc180428a43d4471cac0bf, type: 3}
       propertyPath: m_IsActive
       value: 1
