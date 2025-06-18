@@ -8,6 +8,12 @@ TagManager:
   - Wire
   - Agent
   - Wind
+  - ball
+  - blueAgent
+  - blueGoal
+  - wall
+  - purpleGoal
+  - purpleAgent
   layers:
   - Default
   - TransparentFX
