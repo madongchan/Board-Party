@@ -47,7 +47,7 @@ public class AgentSoccer : Agent
     public Vector3 initialPos;
     public float rotSign;
 
-    EnvironmentParameters m_ResetParams;
+    //EnvironmentParameters m_ResetParams;
 
     public string BehaviorName
     {
@@ -107,7 +107,7 @@ public class AgentSoccer : Agent
         agentRb = GetComponent<Rigidbody>();
         agentRb.maxAngularVelocity = 500;
 
-        m_ResetParams = Academy.Instance.EnvironmentParameters;
+        //m_ResetParams = Academy.Instance.EnvironmentParameters;
     }
 
     public void MoveAgent(ActionSegment<int> act)
@@ -124,21 +124,21 @@ public class AgentSoccer : Agent
         switch (forwardAxis)
         {
             case 1:
-                dirToGo += transform.forward * m_ForwardSpeed;
+                dirToGo = transform.forward * m_ForwardSpeed;
                 m_KickPower = 1f;
                 break;
             case 2:
-                dirToGo += transform.forward * -m_ForwardSpeed;
+                dirToGo = transform.forward * -m_ForwardSpeed;
                 break;
         }
 
         switch (rightAxis)
         {
             case 1:
-                dirToGo += transform.right * m_LateralSpeed;
+                dirToGo = transform.right * m_LateralSpeed;
                 break;
             case 2:
-                dirToGo += transform.right * -m_LateralSpeed;
+                dirToGo = transform.right * -m_LateralSpeed;
                 break;
         }
 
@@ -153,7 +153,7 @@ public class AgentSoccer : Agent
         }
 
         transform.Rotate(rotateDir, Time.deltaTime * 100f);
-        agentRb.linearVelocity = dirToGo * 4f;
+        agentRb.AddForce(dirToGo * 4f, ForceMode.VelocityChange);
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -284,7 +284,6 @@ public class AgentSoccer : Agent
     }
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        // Base existential reward/penalty (기존 생존 보상/페널티)
         if (position == Position.Goalie)
         {
             AddReward(m_Existential);
@@ -385,31 +384,31 @@ public class AgentSoccer : Agent
         {
             force = k_Power; // 골키퍼는 항상 최대 힘으로 공을 찰 수 있도록
         }
-        if (c.gameObject.CompareTag("ball"))
-        {
-            AddReward(.2f * m_BallTouch); // 공 터치 보상
-            var dir = c.contacts[0].point - transform.position;
-            dir = dir.normalized;
-            c.gameObject.GetComponent<Rigidbody>().AddForce(dir * force);
+        // if (c.gameObject.CompareTag("ball"))
+        // {
+        //     AddReward(.2f * m_BallTouch); // 공 터치 보상
+        //     var dir = c.contacts[0].point - transform.position;
+        //     dir = dir.normalized;
+        //     c.gameObject.GetComponent<Rigidbody>().AddForce(dir * force);
 
-            // Striker specific reward for kicking towards goal
-            if (position == Position.Striker)
-            {
-                GameObject opposingGoal = GameObject.FindGameObjectWithTag(team == Team.Blue ? "purpleGoal" : "blueGoal");
-                if (opposingGoal != null)
-                {
-                    Vector3 kickDirection = (c.gameObject.transform.position - transform.position).normalized; // 공이 튕겨나가는 방향
-                    Vector3 directionToGoal = (opposingGoal.transform.localPosition - c.gameObject.transform.localPosition).normalized; // 공에서 골대 방향
-                    float dot = Vector3.Dot(kickDirection, directionToGoal);
-                    AddReward(dot * 0.1f); // 공을 상대 골대 방향으로 찰수록 보상
-                }
-            }
-        }
+        //     // Striker specific reward for kicking towards goal
+        //     if (position == Position.Striker)
+        //     {
+        //         GameObject opposingGoal = GameObject.FindGameObjectWithTag(team == Team.Blue ? "purpleGoal" : "blueGoal");
+        //         if (opposingGoal != null)
+        //         {
+        //             Vector3 kickDirection = (c.gameObject.transform.position - transform.position).normalized; // 공이 튕겨나가는 방향
+        //             Vector3 directionToGoal = (opposingGoal.transform.localPosition - c.gameObject.transform.localPosition).normalized; // 공에서 골대 방향
+        //             float dot = Vector3.Dot(kickDirection, directionToGoal);
+        //             AddReward(dot * 0.1f); // 공을 상대 골대 방향으로 찰수록 보상
+        //         }
+        //     }
+        // }
     }
 
     public override void OnEpisodeBegin()
     {
-        m_BallTouch = m_ResetParams.GetWithDefault("ball_touch", 0);
+        //m_BallTouch = m_ResetParams.GetWithDefault("ball_touch", 0);
     }
 
 }
