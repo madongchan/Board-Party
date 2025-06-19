@@ -85,7 +85,7 @@ public class SoccerEnvController : MonoBehaviour
         var randomPosX = Random.Range(-2.5f, 2.5f);
         var randomPosZ = Random.Range(-2.5f, 2.5f);
 
-        ball.transform.position = m_BallStartingPos + new Vector3(randomPosX, 0f, randomPosZ);
+        ball.transform.position = m_BallStartingPos;// + new Vector3(randomPosX, 0f, randomPosZ);
         ballRb.linearVelocity = Vector3.zero;
         ballRb.angularVelocity = Vector3.zero;
 
@@ -106,7 +106,6 @@ public class SoccerEnvController : MonoBehaviour
         m_PurpleAgentGroup.EndGroupEpisode();
         m_BlueAgentGroup.EndGroupEpisode();
         ResetScene();
-
     }
 
 
@@ -118,7 +117,7 @@ public class SoccerEnvController : MonoBehaviour
         foreach (var item in AgentsList)
         {
             var randomPosX = Random.Range(-5f, 5f);
-            var newStartPos = item.Agent.initialPos + new Vector3(randomPosX, 0f, 0f);
+            var newStartPos = item.Agent.initialPos; //+ new Vector3(randomPosX, 0f, 0f);
             var rot = item.Agent.rotSign * Random.Range(80.0f, 100.0f);
             var newRot = Quaternion.Euler(0, rot, 0);
             item.Agent.transform.SetPositionAndRotation(newStartPos, newRot);

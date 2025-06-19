@@ -74,7 +74,7 @@ public class SoccerAgentAnimator : MonoBehaviour
             // 디버그 정보 표시
             if (showDebugInfo)
             {
-                Debug.Log($"Agent Speed: {currentSpeed}, Animation Value: {(currentSpeed > runThreshold ? 1f : 0f)}");
+                //Debug.Log($"Agent Speed: {currentSpeed}, Animation Value: {(currentSpeed > runThreshold ? 1f : 0f)}");
             }
         }
     }
